@@ -17,6 +17,9 @@
   body { background: var(--bg); color: var(--ink); font: 16px/1.5 Inter, system-ui, sans-serif; overflow-x: hidden; }
   h1, h2, h3, .brand { font-family: "Space Grotesk", Inter, sans-serif; letter-spacing: -0.02em; }
   code, .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+  .bgphoto { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: center / cover no-repeat; opacity: 0; transition: opacity 1.2s; filter: saturate(1.2) contrast(1.05); }
+  .bgphoto.on { opacity: .35; }
+  .bgphoto::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,5,7,.55), rgba(10,5,7,.85) 70%, var(--bg)); }
   .glow { position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background: radial-gradient(70vw 50vw at 50% 0%, rgba(255,61,0,0.28), transparent 60%),
                 radial-gradient(40vw 40vw at 90% 90%, rgba(255,31,90,0.18), transparent 60%); }
@@ -89,6 +92,7 @@
 </style>
 </head>
 <body>
+<div class="bgphoto" id="bgphoto" aria-hidden="true"></div>
 <canvas id="fire" aria-hidden="true"></canvas>
 <div class="glow" aria-hidden="true"></div>
 <div class="stamp">Certified Cooked</div>
@@ -206,6 +210,11 @@
     try { localStorage.setItem('roast.name', name); } catch (_) {}
     renderMarquee(); renderLog();
   };
+  // Background photo: drop a file at public/roast-bg.jpg (or pass ?bg=<url>). Shown only if it loads.
+  const bgSrc = params.get('bg') || 'roast-bg.jpg';
+  const bgImg = new Image();
+  bgImg.onload = () => { const el = $('#bgphoto'); el.style.backgroundImage = `url("${bgSrc.replace(/"/g, '%22')}")`; el.classList.add('on'); };
+  bgImg.src = bgSrc;
   nameEl.addEventListener('input', syncName);
   nameEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); } });
 
