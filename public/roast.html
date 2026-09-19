@@ -17,9 +17,9 @@
   body { background: var(--bg); color: var(--ink); font: 16px/1.5 Inter, system-ui, sans-serif; overflow-x: hidden; }
   h1, h2, h3, .brand { font-family: "Space Grotesk", Inter, sans-serif; letter-spacing: -0.02em; }
   code, .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
-  .bgphoto { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: center / cover no-repeat; opacity: 0; transition: opacity 1.2s; filter: saturate(1.2) contrast(1.05); }
-  .bgphoto.on { opacity: .35; }
-  .bgphoto::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,5,7,.55), rgba(10,5,7,.85) 70%, var(--bg)); }
+  .bgphoto { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: center 28% / cover no-repeat; opacity: 0; transition: opacity 1.2s; filter: saturate(1.3) contrast(1.1); }
+  .bgphoto.on { opacity: .9; }
+  .bgphoto::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,5,7,.05) 0%, rgba(10,5,7,.15) 45%, rgba(10,5,7,.75) 85%, var(--bg)); }
   .glow { position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background: radial-gradient(70vw 50vw at 50% 0%, rgba(255,61,0,0.28), transparent 60%),
                 radial-gradient(40vw 40vw at 90% 90%, rgba(255,31,90,0.18), transparent 60%); }
@@ -42,7 +42,8 @@
     background: linear-gradient(100deg, #fff 0%, var(--ember) 30%, var(--fire) 55%, var(--hot) 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent; background-size: 200% 100%; animation: shimmer 6s linear infinite; }
   @keyframes shimmer { to { background-position: 200% 0 } }
-  .hero p { max-width: 680px; margin: 0 auto; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+  .hero h1 { filter: drop-shadow(0 4px 18px rgba(0,0,0,.9)); }
+  .hero p { text-shadow: 0 2px 12px rgba(0,0,0,.9); max-width: 680px; margin: 0 auto; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
   .name { display: inline-block; border-bottom: 2px dashed var(--ember); cursor: text; padding: 0 4px; color: var(--ink); min-width: 60px; }
   .name:focus { outline: none; border-bottom-style: solid; }
   .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
@@ -56,7 +57,7 @@
   section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin: 0 0 18px; display: flex; gap: 10px; align-items: center; }
   .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
   @media (min-width: 760px) { .grid.two { grid-template-columns: 1fr 1fr; } .grid.three { grid-template-columns: repeat(3, 1fr); } }
-  .card { border: 1px solid var(--line); border-radius: 20px; background: var(--card); padding: 22px; backdrop-filter: blur(10px); }
+  .card { border: 1px solid var(--line); border-radius: 20px; background: rgba(10,5,7,0.72); padding: 22px; backdrop-filter: blur(10px); }
   .card h3 { margin: 0 0 8px; font-size: 20px; }
   .card p { margin: 0; color: var(--muted); }
   .big { font-family: "Space Grotesk", sans-serif; font-size: 40px; font-weight: 700; line-height: 1; }
