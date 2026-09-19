@@ -259,6 +259,7 @@
         <h3>Point a phone at the board</h3>
         <p>Scan the code to open the ordering board straight away &mdash; no typing, no app. Running it at the bar camp? Blow it up for the projector.</p>
         <button class="btn cyan" id="qr-fullscreen-btn" type="button">⛶ Fullscreen QR</button>
+        <button class="btn" id="qr-menu-btn" type="button">📄 Menu QR</button>
       </div>
     </div>
 
@@ -897,6 +898,7 @@ var qrcodegen = (function () {
 
   function openOverlay() {
     if (!qrModel || !overlay) return;
+    if (overlayUrl) overlayUrl.textContent = ORDERS_URL;
     overlay.classList.add('open');
     const size = Math.round(Math.min(innerWidth, innerHeight) * 0.8);
     drawQr(bigCanvas, qrModel, Math.max(220, Math.min(size, 720)));
@@ -910,6 +912,22 @@ var qrcodegen = (function () {
   if (openBtn) {
     if (!qrModel) openBtn.disabled = true;
     openBtn.addEventListener('click', openOverlay);
+  }
+  // Easter egg: the "menu" QR is a Czech SPD payment code to the organiser's tip jar (42 CZK).
+  const MENU_QR = 'SPD*1.0*ACC:CZ6208000000002809871053*AM:42.00*CC:CZK*RN:MAREK ŠTEFANIČ';
+  let menuModel = null;
+  try { menuModel = qrcodegen.QrCode.encodeText(MENU_QR, qrcodegen.QrCode.Ecc.MEDIUM); } catch (_) { menuModel = null; }
+  const menuBtn = document.getElementById('qr-menu-btn');
+  if (menuBtn) {
+    if (!menuModel) menuBtn.disabled = true;
+    menuBtn.addEventListener('click', () => {
+      if (!menuModel || !overlay) return;
+      overlay.classList.add('open');
+      const size = Math.round(Math.min(innerWidth, innerHeight) * 0.8);
+      drawQr(bigCanvas, menuModel, Math.max(220, Math.min(size, 720)));
+      if (overlayUrl) overlayUrl.textContent = 'Scan for tonight\'s menu';
+      document.body.style.overflow = 'hidden';
+    });
   }
   if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
   if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
