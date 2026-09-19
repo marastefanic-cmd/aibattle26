@@ -1,0 +1,10 @@
+{
+  "name": "barcamp-orders",
+  "version": "1.0.0",
+  "description": "BarCamp bar ordering board: collect orders, see what needs ordering, track what's left",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}

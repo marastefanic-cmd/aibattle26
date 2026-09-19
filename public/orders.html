@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BarCamp Orders</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8D%BB%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --card: #ffffff;
+    --ink: #1c1a17;
+    --muted: #6b665d;
+    --line: #e4e0d6;
+    --accent: #d9480f;
+    --accent-ink: #ffffff;
+    --ok: #2b8a3e;
+    --ok-bg: #e6f4ea;
+    --warn-bg: #fff4e6;
+    --danger: #c92a2a;
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16151a; --card: #1f1e24; --ink: #f2efe9; --muted: #a39d92; --line: #33313a;
+      --accent: #ff7a3d; --accent-ink: #1a0d05; --ok: #69db7c; --ok-bg: #1d2f22; --warn-bg: #3a2a16;
+      --danger: #ff6b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--card);
+    position: sticky; top: 0; z-index: 5;
+  }
+  header h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  header .stats { display: flex; gap: 14px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
+  header .stats b { color: var(--ink); font-size: 18px; }
+  .status { font-size: 12px; color: var(--muted); }
+  .status.offline { color: var(--danger); }
+
+  main {
+    max-width: 1200px; margin: 0 auto; padding: 16px;
+    display: grid; gap: 16px; grid-template-columns: 1fr;
+  }
+  @media (min-width: 900px) {
+    main { grid-template-columns: 340px 1fr; align-items: start; }
+    .left { position: sticky; top: 72px; }
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px;
+  }
+  .card h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 12px; }
+
+  form label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  form input, form select, form textarea {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  }
+  form input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .row { display: flex; gap: 8px; }
+  .qty { display: flex; align-items: stretch; }
+  .qty button { width: 44px; font-size: 20px; }
+  .qty input { text-align: center; width: 70px; border-radius: 0; }
+  .qty button:first-child { border-radius: 8px 0 0 8px; }
+  .qty button:last-child { border-radius: 0 8px 8px 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+    border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer;
+  }
+  .chip:hover, .chip.active { border-color: var(--accent); color: var(--accent); }
+
+  button {
+    font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--bg);
+    color: var(--ink); border-radius: 8px; padding: 8px 12px;
+  }
+  button:hover { border-color: var(--muted); }
+  button.primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    width: 100%; padding: 12px; font-size: 17px; font-weight: 600; margin-top: 14px;
+  }
+  button.primary:disabled { opacity: 0.6; cursor: default; }
+  button.ghost { background: transparent; }
+  button.danger { color: var(--danger); }
+  button.small { padding: 5px 9px; font-size: 13px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tabs button.active { background: var(--ink); color: var(--card); border-color: var(--ink); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.done td { color: var(--muted); }
+  tr.done .item-name { text-decoration: line-through; }
+  .item-name { font-weight: 600; font-size: 17px; }
+  .note { color: var(--muted); font-size: 13px; }
+  .who { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .who span {
+    font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px;
+  }
+  .who span.done { color: var(--muted); text-decoration: line-through; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge.open { background: var(--warn-bg); color: var(--accent); }
+  .badge.done { background: var(--ok-bg); color: var(--ok); }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .bar i { display: block; height: 100%; background: var(--ok); }
+  td.actions { text-align: right; white-space: nowrap; }
+  .actions div { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .empty { color: var(--muted); padding: 24px; text-align: center; }
+  .person-group { margin-bottom: 18px; }
+  .person-group h3 { margin: 0 0 6px; font-size: 16px; display: flex; justify-content: space-between; align-items: baseline; }
+  .person-group h3 small { color: var(--muted); font-weight: normal; font-size: 13px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .toast {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--card); padding: 10px 16px; border-radius: 999px;
+    font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+  @media (max-width: 600px) {
+    th.hide-sm, td.hide-sm { display: none; }
+    header h1 { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1><a href="/" style="text-decoration:none;color:inherit" title="Back to home">🍻</a> BarCamp Orders</h1>
+    <div class="status" id="status">connecting…</div>
+  </div>
+  <div class="stats">
+    <div>To order <b id="stat-remaining">0</b></div>
+    <div>Ordered <b id="stat-total">0</b></div>
+    <div>Delivered <b id="stat-delivered">0</b></div>
+    <div>People <b id="stat-people">0</b></div>
+  </div>
+</header>
+
+<main>
+  <section class="left">
+    <div class="card">
+      <h2>Add your order</h2>
+      <form id="order-form" autocomplete="off">
+        <label for="name">Your name</label>
+        <input id="name" name="name" placeholder="e.g. Mara" required maxlength="60">
+
+        <label for="item">What do you want?</label>
+        <input id="item" name="item" list="item-list" placeholder="e.g. Pilsner 0.5l" required maxlength="80">
+        <datalist id="item-list"></datalist>
+        <div class="chips" id="quick-items"></div>
+
+        <label for="qty">How many</label>
+        <div class="qty">
+          <button type="button" id="qty-minus" aria-label="minus one">−</button>
+          <input id="qty" name="qty" type="number" min="1" max="999" value="1" inputmode="numeric">
+          <button type="button" id="qty-plus" aria-label="plus one">+</button>
+        </div>
+
+        <label for="note">Note (optional)</label>
+        <input id="note" name="note" placeholder="no ice, big glass, …" maxlength="200">
+
+        <button class="primary" type="submit" id="submit-btn">Add to the list</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="card">
+      <div class="toolbar">
+        <div class="tabs">
+          <button type="button" data-view="items" class="active">What to order</button>
+          <button type="button" data-view="people">By person</button>
+          <button type="button" data-view="log">All orders</button>
+        </div>
+        <div class="row">
+          <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;margin:0">
+            <input type="checkbox" id="hide-done" style="width:auto"> hide delivered
+          </label>
+          <button type="button" class="small danger ghost" id="new-round">New round (clear all)</button>
+        </div>
+      </div>
+      <div id="view"></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const QUICK = ['Beer 0.5l', 'Beer 0.3l', 'Radler', 'Wine white', 'Wine red', 'Spritz', 'Gin tonic', 'Cola', 'Water', 'Coffee', 'Fries', 'Pizza'];
+
+  let orders = [];
+  let view = localStorage.getItem('bc.view') || 'items';
+  let hideDone = localStorage.getItem('bc.hideDone') === '1';
+  let pollTimer = null;
+
+  // ---------- helpers ----------
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const keyOf = (s) => s.trim().toLowerCase();
+  const timeOf = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const remaining = (o) => Math.max(0, o.qty - o.delivered);
+
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  async function api(method, url, body) {
+    const r = await fetch(url, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!r.ok) {
+      let msg = r.statusText;
+      try { msg = (await r.json()).error || msg; } catch (_) {}
+      throw new Error(msg);
+    }
+    return r.json();
+  }
+
+  // ---------- data ----------
+  async function refresh() {
+    try {
+      const data = await api('GET', '/api/state');
+      orders = data.orders;
+      $('#status').textContent = 'live · updated ' + timeOf(Date.now());
+      $('#status').classList.remove('offline');
+      render();
+    } catch (e) {
+      $('#status').textContent = 'offline – retrying…';
+      $('#status').classList.add('offline');
+    }
+  }
+
+  function startPolling() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(refresh, 3000);
+  }
+
+  // ---------- rendering ----------
+  function renderStats() {
+    const total = orders.reduce((a, o) => a + o.qty, 0);
+    const delivered = orders.reduce((a, o) => a + o.delivered, 0);
+    const people = new Set(orders.map((o) => keyOf(o.name))).size;
+    $('#stat-remaining').textContent = total - delivered;
+    $('#stat-total').textContent = total;
+    $('#stat-delivered').textContent = delivered;
+    $('#stat-people').textContent = people;
+    document.title = (total - delivered > 0 ? `(${total - delivered}) ` : '') + 'BarCamp Orders';
+  }
+
+  function renderDatalist() {
+    const names = new Set(QUICK.map(keyOf));
+    const list = [...QUICK];
+    orders.forEach((o) => { if (!names.has(keyOf(o.item))) { names.add(keyOf(o.item)); list.push(o.item); } });
+    $('#item-list').innerHTML = list.map((i) => `<option value="${esc(i)}">`).join('');
+    if (!$('#quick-items').children.length) {
+      $('#quick-items').innerHTML = QUICK.map((i) => `<button type="button" class="chip" data-item="${esc(i)}">${esc(i)}</button>`).join('');
+    }
+  }
+
+  function groupByItem() {
+    const map = new Map();
+    orders.forEach((o) => {
+      const k = keyOf(o.item);
+      if (!map.has(k)) map.set(k, { name: o.item, qty: 0, delivered: 0, orders: [], notes: [] });
+      const g = map.get(k);
+      g.qty += o.qty; g.delivered += o.delivered; g.orders.push(o);
+      if (o.note) g.notes.push(`${o.name}: ${o.note}`);
+    });
+    return [...map.values()].sort((a, b) => (b.qty - b.delivered) - (a.qty - a.delivered) || a.name.localeCompare(b.name));
+  }
+
+  function viewItems() {
+    let groups = groupByItem();
+    if (hideDone) groups = groups.filter((g) => g.qty - g.delivered > 0);
+    if (!groups.length) return `<div class="empty">${orders.length ? 'Everything is delivered 🎉' : 'Nothing ordered yet. Add the first one!'}</div>`;
+    return `<table>
+      <thead><tr><th>Item</th><th class="num">Remaining</th><th class="num hide-sm">Ordered</th><th class="num hide-sm">Delivered</th><th></th></tr></thead>
+      <tbody>${groups.map((g) => {
+        const rem = g.qty - g.delivered;
+        const pct = g.qty ? Math.round(g.delivered / g.qty * 100) : 0;
+        return `<tr class="${rem === 0 ? 'done' : ''}">
+          <td>
+            <div class="item-name">${esc(g.name)}</div>
+            <div class="who">${g.orders.map((o) => `<span class="${remaining(o) === 0 ? 'done' : ''}" title="${esc(o.note || '')}">${esc(o.name)} × ${o.qty}${o.delivered ? ` (${o.delivered} ✓)` : ''}</span>`).join('')}</div>
+            ${g.notes.length ? `<div class="note">📝 ${g.notes.map(esc).join(' · ')}</div>` : ''}
+            <div class="bar"><i style="width:${pct}%"></i></div>
+          </td>
+          <td class="num"><span class="badge ${rem ? 'open' : 'done'}">${rem ? rem + ' left' : 'done'}</span></td>
+          <td class="num hide-sm">${g.qty}</td>
+          <td class="num hide-sm">${g.delivered}</td>
+          <td class="actions"><div>
+            ${rem ? `<button class="small" data-act="deliver-item" data-key="${esc(keyOf(g.name))}">+1 delivered</button>
+                     <button class="small" data-act="deliver-item-all" data-key="${esc(keyOf(g.name))}">All delivered</button>` : ''}
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  function orderRow(o, showName) {
+    const rem = remaining(o);
+    return `<tr class="${rem === 0 ? 'done' : ''}" data-id="${o.id}">
+      <td>
+        <div class="item-name">${esc(o.item)} <span class="note">× ${o.qty}</span></div>
+        ${showName ? `<div class="note">by <b>${esc(o.name)}</b> · ${timeOf(o.createdAt)}</div>` : `<div class="note">${timeOf(o.createdAt)}</div>`}
+        ${o.note ? `<div class="note">📝 ${esc(o.note)}</div>` : ''}
+      </td>
+      <td class="num"><span class="badge ${rem ? 'open' : 'done'}">${rem ? rem + ' left' : 'done'}</span><br><span class="note">${o.delivered}/${o.qty} ✓</span></td>
+      <td class="actions"><div>
+        ${rem ? `<button class="small" data-act="deliver" data-id="${o.id}">+1 ✓</button>
+                 <button class="small" data-act="done" data-id="${o.id}">All ✓</button>` :
+                `<button class="small ghost" data-act="undo" data-id="${o.id}">Undo</button>`}
+        <button class="small" data-act="qty-minus" data-id="${o.id}" title="one less">−</button>
+        <button class="small" data-act="qty-plus" data-id="${o.id}" title="one more">+</button>
+        <button class="small danger ghost" data-act="delete" data-id="${o.id}" title="remove order">✕</button>
+      </div></td>
+    </tr>`;
+  }
+
+  function viewPeople() {
+    const map = new Map();
+    orders.forEach((o) => {
+      const k = keyOf(o.name);
+      if (!map.has(k)) map.set(k, { name: o.name, orders: [] });
+      map.get(k).orders.push(o);
+    });
+    let people = [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+    if (hideDone) people = people.map((p) => ({ ...p, orders: p.orders.filter((o) => remaining(o) > 0) })).filter((p) => p.orders.length);
+    if (!people.length) return `<div class="empty">${orders.length ? 'Everything is delivered 🎉' : 'Nobody has ordered yet.'}</div>`;
+    return people.map((p) => {
+      const total = p.orders.reduce((a, o) => a + o.qty, 0);
+      const rem = p.orders.reduce((a, o) => a + remaining(o), 0);
+      return `<div class="person-group">
+        <h3><span>${esc(p.name)}</span><small>${total} item${total === 1 ? '' : 's'} · ${rem ? rem + ' still coming' : 'all delivered'}</small></h3>
+        <table><tbody>${p.orders.map((o) => orderRow(o, false)).join('')}</tbody></table>
+      </div>`;
+    }).join('');
+  }
+
+  function viewLog() {
+    let list = [...orders].sort((a, b) => b.createdAt - a.createdAt);
+    if (hideDone) list = list.filter((o) => remaining(o) > 0);
+    if (!list.length) return `<div class="empty">${orders.length ? 'Everything is delivered 🎉' : 'No orders yet.'}</div>`;
+    return `<table><tbody>${list.map((o) => orderRow(o, true)).join('')}</tbody></table>`;
+  }
+
+  function render() {
+    renderStats();
+    renderDatalist();
+    document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+    $('#hide-done').checked = hideDone;
+    $('#view').innerHTML = view === 'items' ? viewItems() : view === 'people' ? viewPeople() : viewLog();
+  }
+
+  // ---------- actions ----------
+  async function patch(id, body) {
+    try { await api('PATCH', '/api/orders/' + id, body); await refresh(); }
+    catch (e) { toast('Failed: ' + e.message); }
+  }
+
+  $('#view').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('button[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+    const id = btn.dataset.id;
+    if (act === 'deliver') return patch(id, { deliverDelta: 1 });
+    if (act === 'done') return patch(id, { done: true });
+    if (act === 'undo') return patch(id, { done: false });
+    if (act === 'qty-plus') { const o = orders.find((x) => x.id == id); return patch(id, { qty: o.qty + 1 }); }
+    if (act === 'qty-minus') {
+      const o = orders.find((x) => x.id == id);
+      if (o.qty <= 1) { if (confirm(`Remove ${o.name}'s ${o.item}?`)) { await api('DELETE', '/api/orders/' + id); refresh(); } return; }
+      return patch(id, { qty: o.qty - 1 });
+    }
+    if (act === 'delete') {
+      const o = orders.find((x) => x.id == id);
+      if (!confirm(`Remove ${o.name}'s order (${o.item} × ${o.qty})?`)) return;
+      try { await api('DELETE', '/api/orders/' + id); toast('Removed'); refresh(); } catch (e) { toast('Failed: ' + e.message); }
+      return;
+    }
+    if (act === 'deliver-item' || act === 'deliver-item-all') {
+      // Deliver one (or all) of an item: oldest open orders first.
+      const key = btn.dataset.key;
+      const open = orders.filter((o) => keyOf(o.item) === key && remaining(o) > 0).sort((a, b) => a.createdAt - b.createdAt);
+      try {
+        if (act === 'deliver-item') await api('PATCH', '/api/orders/' + open[0].id, { deliverDelta: 1 });
+        else await Promise.all(open.map((o) => api('PATCH', '/api/orders/' + o.id, { done: true })));
+        refresh();
+      } catch (e) { toast('Failed: ' + e.message); }
+    }
+  });
+
+  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+    view = b.dataset.view; localStorage.setItem('bc.view', view); render();
+  }));
+  $('#hide-done').addEventListener('change', (e) => {
+    hideDone = e.target.checked; localStorage.setItem('bc.hideDone', hideDone ? '1' : '0'); render();
+  });
+  $('#new-round').addEventListener('click', async () => {
+    if (!orders.length) return toast('Board is already empty');
+    if (!confirm('Clear ALL orders for everyone? This cannot be undone.')) return;
+    try { await api('DELETE', '/api/orders'); toast('Board cleared'); refresh(); } catch (e) { toast('Failed: ' + e.message); }
+  });
+
+  // form
+  const nameInput = $('#name');
+  nameInput.value = localStorage.getItem('bc.name') || '';
+  $('#quick-items').addEventListener('click', (ev) => {
+    const chip = ev.target.closest('.chip'); if (!chip) return;
+    $('#item').value = chip.dataset.item;
+    document.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c === chip));
+    $('#qty').focus();
+  });
+  $('#qty-minus').addEventListener('click', () => { const q = $('#qty'); q.value = Math.max(1, (parseInt(q.value, 10) || 1) - 1); });
+  $('#qty-plus').addEventListener('click', () => { const q = $('#qty'); q.value = Math.min(999, (parseInt(q.value, 10) || 0) + 1); });
+
+  $('#order-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const body = {
+      name: nameInput.value.trim(),
+      item: $('#item').value.trim(),
+      qty: parseInt($('#qty').value, 10) || 1,
+      note: $('#note').value.trim(),
+    };
+    if (!body.name || !body.item) return toast('Name and item are required');
+    const btn = $('#submit-btn'); btn.disabled = true;
+    try {
+      await api('POST', '/api/orders', body);
+      localStorage.setItem('bc.name', body.name);
+      toast(`Added ${body.qty} × ${body.item} for ${body.name}`);
+      $('#item').value = ''; $('#qty').value = 1; $('#note').value = '';
+      document.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+      $('#item').focus();
+      await refresh();
+    } catch (e) { toast('Failed: ' + e.message); }
+    finally { btn.disabled = false; }
+  });
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+
+  refresh();
+  startPolling();
+  if (!nameInput.value) nameInput.focus(); else $('#item').focus();
+})();
+</script>
+</body>
+</html>

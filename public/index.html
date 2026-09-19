@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Battle 26 · BarCamp Hub</title>
+<meta name="description" content="Two apps built live during the AI Battle: a shared BarCamp ordering board and PC Builder Tetris.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07080f;
+    --bg2: #0d1020;
+    --ink: #f4f5fb;
+    --muted: #9aa0b8;
+    --line: rgba(255,255,255,0.08);
+    --card: rgba(255,255,255,0.04);
+    --amber: #ffb347;
+    --orange: #ff6a3d;
+    --cyan: #3fe0ff;
+    --violet: #8f6bff;
+    --green: #4ade80;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, .brand { font-family: "Space Grotesk", Inter, system-ui, sans-serif; letter-spacing: -0.02em; }
+
+  canvas#bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  .glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(60vw 60vw at 15% 10%, rgba(255,106,61,0.22), transparent 60%),
+      radial-gradient(50vw 50vw at 85% 80%, rgba(63,224,255,0.18), transparent 60%),
+      radial-gradient(40vw 40vw at 70% 20%, rgba(143,107,255,0.16), transparent 60%);
+  }
+  .wrap { position: relative; z-index: 1; max-width: 1140px; margin: 0 auto; padding: 0 20px; }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between; padding: 22px 0;
+  }
+  .brand { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.4); opacity: .6 } }
+  nav .links { display: flex; gap: 8px; }
+  nav a { color: var(--muted); text-decoration: none; padding: 8px 14px; border-radius: 999px; border: 1px solid transparent; font-size: 14px; }
+  nav a:hover { color: var(--ink); border-color: var(--line); background: var(--card); }
+
+  .hero { padding: 72px 0 40px; text-align: center; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--card); color: var(--muted); font-size: 13px;
+    backdrop-filter: blur(8px);
+  }
+  .hero h1 {
+    font-size: clamp(40px, 8vw, 84px); line-height: 1.02; margin: 22px 0 18px;
+    background: linear-gradient(100deg, #fff 0%, var(--amber) 35%, var(--orange) 55%, var(--cyan) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 8s linear infinite; background-size: 200% 100%;
+  }
+  @keyframes shimmer { to { background-position: 200% 0; } }
+  .hero p { max-width: 640px; margin: 0 auto; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
+  .cta { display: flex; gap: 12px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 14px;
+    font-weight: 600; text-decoration: none; color: var(--ink); border: 1px solid var(--line);
+    background: var(--card); transition: transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .btn:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.25); }
+  .btn.orange { background: linear-gradient(135deg, var(--orange), var(--amber)); color: #1a0a04; border: none; box-shadow: 0 10px 30px rgba(255,106,61,0.35); }
+  .btn.cyan { background: linear-gradient(135deg, var(--cyan), var(--violet)); color: #050812; border: none; box-shadow: 0 10px 30px rgba(63,224,255,0.3); }
+
+  .grid { display: grid; gap: 20px; grid-template-columns: 1fr; padding: 30px 0 60px; }
+  @media (min-width: 820px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .app {
+    position: relative; overflow: hidden; border-radius: 24px; border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    padding: 28px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 14px;
+    transition: transform .2s, border-color .2s, box-shadow .2s; backdrop-filter: blur(10px);
+  }
+  .app:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); }
+  .app.orders:hover { box-shadow: 0 30px 60px -20px rgba(255,106,61,0.5); }
+  .app.tetris:hover { box-shadow: 0 30px 60px -20px rgba(63,224,255,0.45); }
+  .app .icon {
+    width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-size: 32px;
+  }
+  .orders .icon { background: linear-gradient(135deg, rgba(255,106,61,.35), rgba(255,179,71,.2)); }
+  .tetris .icon { background: linear-gradient(135deg, rgba(63,224,255,.3), rgba(143,107,255,.25)); }
+  .app h2 { margin: 0; font-size: 28px; }
+  .app p { margin: 0; color: var(--muted); }
+  .app .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .app .go { margin-top: auto; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .orders .go { color: var(--amber); }
+  .tetris .go { color: var(--cyan); }
+  .app .go span { transition: transform .2s; display: inline-block; }
+  .app:hover .go span { transform: translateX(6px); }
+  .live {
+    display: flex; gap: 18px; padding: 14px 16px; border-radius: 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  .live div { font-size: 12px; color: var(--muted); }
+  .live b { display: block; font-size: 24px; color: var(--ink); font-family: "Space Grotesk", sans-serif; }
+  .live b.hot { color: var(--amber); }
+
+  .preview { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .preview i {
+    display: block; height: 28px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
+  }
+  .p-ram { background: linear-gradient(180deg, #2f8f4e, #1f5d34); }
+  .p-cpu { background: linear-gradient(180deg, #b8bcc8, #6c7180); }
+  .p-gpu { background: linear-gradient(180deg, #333a55, #171b2c); }
+  .p-ssd { background: linear-gradient(180deg, #2a2f3a, #14171f); }
+  .p-pcb { background: linear-gradient(180deg, #1d7a3e, #0f4a24); }
+  .p-psu { background: linear-gradient(180deg, #3a3a3a, #111); }
+  .p-hdd { background: linear-gradient(180deg, #a9adb8, #5a5f6b); }
+  .p-empty { background: rgba(255,255,255,0.03); border-style: dashed; }
+
+  .how { padding: 10px 0 70px; }
+  .how h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); text-align: center; margin: 0 0 18px; }
+  .steps { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+  .step { padding: 18px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); }
+  .step b { display: block; margin-bottom: 4px; font-family: "Space Grotesk", sans-serif; }
+  .step span { color: var(--muted); font-size: 14px; }
+
+  footer { padding: 20px 0 40px; color: var(--muted); font-size: 13px; text-align: center; border-top: 1px solid var(--line); }
+  footer a { color: var(--muted); }
+  .reveal { opacity: 0; transform: translateY(16px); animation: rise .7s forwards; }
+  .reveal:nth-child(2) { animation-delay: .1s } .reveal:nth-child(3) { animation-delay: .2s }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .reveal { animation: none; opacity: 1; transform: none; } .hero h1 { animation: none; } }
+</style>
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="glow" aria-hidden="true"></div>
+
+<div class="wrap">
+  <nav>
+    <div class="brand"><span class="dot"></span> AI Battle 26</div>
+    <div class="links">
+      <a href="/orders">Orders</a>
+      <a href="/tetris">Tetris</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <span class="eyebrow reveal">⚡ Built live · two apps, one evening</span>
+    <h1 class="reveal">Drinks in.<br>Blocks down.</h1>
+    <p class="reveal">The BarCamp hub: a shared ordering board so nobody's beer gets forgotten, and a Tetris where the falling blocks are the parts of a PC.</p>
+    <div class="cta">
+      <a class="btn orange" href="/orders">🍻 Open the ordering board</a>
+      <a class="btn cyan" href="/tetris">🖥️ Play PC Builder Tetris</a>
+    </div>
+  </section>
+
+  <section class="grid">
+    <a class="app orders reveal" href="/orders">
+      <div class="icon">🍻</div>
+      <h2>BarCamp Orders</h2>
+      <p>Everyone types what they want. The bar runner sees what to order, who ordered it, and how many items are still on their way. Live on every phone in the room.</p>
+      <div class="live" id="live">
+        <div><b id="l-remaining">–</b>to order</div>
+        <div><b id="l-total">–</b>ordered</div>
+        <div><b id="l-people">–</b>people</div>
+      </div>
+      <div class="tags"><span class="tag">Shared board</span><span class="tag">Live updates</span><span class="tag">Delivery tracking</span><span class="tag">Mobile first</span></div>
+      <div class="go">Take orders <span>→</span></div>
+    </a>
+
+    <a class="app tetris reveal" href="/tetris">
+      <div class="icon">🖥️</div>
+      <h2>PC Builder Tetris</h2>
+      <p>Classic tetromino shapes, but every piece is a computer part: RAM sticks, CPUs, GPUs, SSDs, PCBs, power supplies, hard drives. Clear lines, build the rig.</p>
+      <div class="preview" aria-hidden="true">
+        <i class="p-empty"></i><i class="p-gpu"></i><i class="p-gpu"></i><i class="p-empty"></i>
+        <i class="p-ram"></i><i class="p-ram"></i><i class="p-ram"></i><i class="p-ram"></i>
+        <i class="p-cpu"></i><i class="p-cpu"></i><i class="p-pcb"></i><i class="p-hdd"></i>
+        <i class="p-psu"></i><i class="p-ssd"></i><i class="p-ssd"></i><i class="p-hdd"></i>
+      </div>
+      <div class="tags"><span class="tag">7 parts</span><span class="tag">Hold &amp; ghost</span><span class="tag">Touch controls</span><span class="tag">High score</span></div>
+      <div class="go">Start building <span>→</span></div>
+    </a>
+  </section>
+
+  <section class="how">
+    <h3>How the board works</h3>
+    <div class="steps">
+      <div class="step"><b>1 · Add your order</b><span>Pick a quick chip or type anything, set how many, add a note.</span></div>
+      <div class="step"><b>2 · See what to order</b><span>Items are grouped with totals, so the runner reads one line per drink.</span></div>
+      <div class="step"><b>3 · Tick off deliveries</b><span>+1 per item as it lands on the table. Remaining counts update for everyone.</span></div>
+    </div>
+  </section>
+
+  <footer>Built during AI Battle 26 · <a href="/orders">Orders</a> · <a href="/tetris">Tetris</a></footer>
+</div>
+
+<script>
+(() => {
+  // ---- live stats card ----
+  async function stats() {
+    try {
+      const r = await fetch('/api/state', { cache: 'no-store' });
+      const { orders } = await r.json();
+      const total = orders.reduce((a, o) => a + o.qty, 0);
+      const delivered = orders.reduce((a, o) => a + o.delivered, 0);
+      const people = new Set(orders.map((o) => o.name.trim().toLowerCase())).size;
+      const rem = document.getElementById('l-remaining');
+      rem.textContent = total - delivered; rem.classList.toggle('hot', total - delivered > 0);
+      document.getElementById('l-total').textContent = total;
+      document.getElementById('l-people').textContent = people;
+    } catch (_) { /* landing page still works offline */ }
+  }
+  stats(); setInterval(stats, 5000);
+
+  // ---- falling shapes background ----
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SHAPES = [
+    [[1,1,1,1]], [[1,1],[1,1]], [[0,1,0],[1,1,1]], [[0,1,1],[1,1,0]], [[1,1,0],[0,1,1]], [[1,0,0],[1,1,1]], [[0,0,1],[1,1,1]],
+  ];
+  const COLORS = ['#3fe0ff', '#ffb347', '#8f6bff', '#4ade80', '#ff6a3d', '#60a5fa', '#f472b6'];
+  let W, H, items = [];
+  function resize() {
+    W = canvas.width = innerWidth * devicePixelRatio; H = canvas.height = innerHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+  function spawn(y) {
+    const t = Math.floor(Math.random() * 7);
+    return { shape: SHAPES[t], color: COLORS[t], x: Math.random() * innerWidth, y: y ?? -80,
+      s: 14 + Math.random() * 14, v: 0.25 + Math.random() * 0.6, rot: Math.random() * Math.PI, rv: (Math.random() - .5) * 0.004, a: 0.08 + Math.random() * 0.12 };
+  }
+  function init() { resize(); items = Array.from({ length: 22 }, () => spawn(Math.random() * innerHeight)); }
+  function draw() {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (const it of items) {
+      ctx.save(); ctx.translate(it.x, it.y); ctx.rotate(it.rot); ctx.globalAlpha = it.a; ctx.fillStyle = it.color;
+      it.shape.forEach((row, r) => row.forEach((c, k) => { if (c) { ctx.fillRect(k * it.s - it.s, r * it.s - it.s, it.s - 2, it.s - 2); } }));
+      ctx.restore();
+      if (!reduce) { it.y += it.v; it.rot += it.rv; if (it.y > innerHeight + 80) Object.assign(it, spawn()); }
+    }
+    if (!reduce) requestAnimationFrame(draw);
+  }
+  addEventListener('resize', resize);
+  init(); draw();
+})();
+</script>
+</body>
+</html>
