@@ -89,7 +89,27 @@
   footer a { color: var(--muted); }
   .toast { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #1a0500; padding: 10px 16px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; font-weight: 600; }
   .toast.show { opacity: 1; }
-  @media (prefers-reduced-motion: reduce) { .marquee span, .hero h1 { animation: none; } }
+  /* floating childish-insult bubbles */
+  .bubble {
+    position: fixed; z-index: 3; pointer-events: none; max-width: 260px; padding: 10px 14px; border-radius: 18px;
+    font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 15px; line-height: 1.25; color: #1a0500;
+    background: #fff; border: 3px solid #1a0500; box-shadow: 4px 4px 0 #1a0500;
+    animation: bub-pop .35s cubic-bezier(.2,1.4,.4,1) both, bub-float var(--dur, 7s) ease-in forwards; will-change: transform, opacity;
+  }
+  .bubble::after { content: ""; position: absolute; left: 22px; bottom: -14px; border: 8px solid transparent; border-top: 10px solid #1a0500; border-bottom: 0; }
+  .bubble.think { border-radius: 50%; padding: 16px 20px; text-align: center; }
+  .bubble.think::after { display: none; }
+  .bubble.c1 { background: #fff59a; } .bubble.c2 { background: #a8f0c6; } .bubble.c3 { background: #ffb3c7; } .bubble.c4 { background: #b9e2ff; } .bubble.c5 { background: #ffd39a; }
+  .bubble.shout { text-transform: uppercase; font-size: 18px; letter-spacing: .02em; clip-path: polygon(0 20%, 12% 0, 25% 12%, 40% 0, 52% 12%, 66% 0, 78% 12%, 92% 0, 100% 22%, 92% 45%, 100% 70%, 88% 88%, 72% 100%, 55% 90%, 40% 100%, 24% 90%, 10% 100%, 0 78%, 8% 50%); border: none; box-shadow: none; padding: 22px 28px; background: #ffdd00; }
+  .bubble.shout::after { display: none; }
+  @keyframes bub-pop { from { transform: scale(.2) rotate(var(--rot, 0deg)); } to { transform: scale(1) rotate(var(--rot, 0deg)); } }
+  @keyframes bub-float {
+    0% { translate: 0 0; opacity: 1; }
+    70% { opacity: 1; }
+    100% { translate: var(--dx, 0px) var(--dy, -320px); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .marquee span, .hero h1 { animation: none; } .bubble { animation: bub-fade 4s forwards; } }
+  @keyframes bub-fade { 0%, 60% { opacity: 1 } 100% { opacity: 0 } }
 </style>
 </head>
 <body>
@@ -296,6 +316,47 @@
   setTimeout(() => { $('#meter').style.width = '97%'; let v = 0; const t = setInterval(() => { v = Math.min(97, v + 3); $('#meter-val').textContent = v + '%' + (v >= 97 ? ' · medium rare, like their MVP' : ''); if (v >= 97) clearInterval(t); }, 70); }, 400);
 
   syncName(); addRoast(6);
+
+  // ---- scroll-triggered childish insult bubbles ----
+  const INSULTS = [
+    'Who farted? Oh. %n%\'s code.', 'Nyah nyah nyah!', 'I know you are but what am I?', '%n% eats crayons. The blue ones.',
+    'Your CSS has cooties.', 'Stinky code alert 🤢', '%n% smells like localhost.', 'Ha ha your bugs are showing',
+    'Your mom uses Internet Explorer.', 'Poopy-head deploy 💩', '%n%, is that a README or a diary?', 'Booger-brain build failed 🤧',
+    'Smrkáš smrkáš smrkáš', 'Loser says what?', 'Did you push to main? EW.', '%n% types with one finger. The wrong one.',
+    'Neener neener your tests are greener (they\'re not)', 'Your app has the hiccups.', 'Pfffft 🙄', 'Your commits are stinky-winky.',
+    'Ptooey! Spaghetti code!', '%n% still uses jQuery. Gross!', 'My grandma has better uptime.', 'Cry about it 😭',
+    'Who let the bugs out? %n% did. Woof.', 'Your propeller hat is doing more work than your CPU.', 'Bananas have more commits than you 🍌',
+    'Two energy drinks and still asleep at the keyboard.', 'Skill issue. Sorry. Skill issue.', '%n% called a variable "thing2".',
+    'BLEH 👅', 'Are you coding or just holding the laptop?', 'Your semicolons ran away from home.', 'EW EW EW EW EW',
+    '%n%\'s error log is longer than his README.', 'You smell like a merge conflict.', 'Stop copying me! (from Stack Overflow)',
+  ];
+  const EMOJI = ['💩', '🤡', '🍌', '🧸', '🤪', '👃', '💨', '🐸', '🧀', '👶', '🫧', '🙈'];
+  let live = 0;
+  function bubble(force) {
+    if (!force && live >= 10) return;
+    live++;
+    const el = document.createElement('div');
+    const style = Math.random();
+    el.className = 'bubble c' + (1 + Math.floor(Math.random() * 5)) + (style < 0.18 ? ' shout' : style < 0.34 ? ' think' : '');
+    const text = fill(INSULTS[Math.floor(Math.random() * INSULTS.length)]);
+    el.textContent = (Math.random() < 0.6 ? EMOJI[Math.floor(Math.random() * EMOJI.length)] + ' ' : '') + text;
+    const fromBottom = Math.random() < 0.7;
+    el.style.left = Math.round(8 + Math.random() * Math.max(40, innerWidth - 300)) + 'px';
+    el.style.top = Math.round(fromBottom ? innerHeight - 80 - Math.random() * 120 : 80 + Math.random() * (innerHeight * 0.5)) + 'px';
+    el.style.setProperty('--rot', ((Math.random() - 0.5) * 16).toFixed(1) + 'deg');
+    el.style.setProperty('--dx', Math.round((Math.random() - 0.5) * 180) + 'px');
+    el.style.setProperty('--dy', -Math.round(200 + Math.random() * 320) + 'px');
+    el.style.setProperty('--dur', (5 + Math.random() * 4).toFixed(1) + 's');
+    document.body.appendChild(el);
+    el.addEventListener('animationend', (e) => { if (e.animationName === 'bub-float' || e.animationName === 'bub-fade') { el.remove(); live--; } });
+  }
+  let scrollAcc = 0, lastY = scrollY;
+  addEventListener('scroll', () => {
+    scrollAcc += Math.abs(scrollY - lastY); lastY = scrollY;
+    while (scrollAcc >= 140) { scrollAcc -= 140; bubble(); if (Math.random() < 0.35) bubble(); }
+  }, { passive: true });
+  setInterval(() => { if (document.visibilityState === 'visible') bubble(); }, 3500);
+  setTimeout(() => { bubble(true); setTimeout(() => bubble(true), 600); }, 1200);
 
   // ---- ember particles ----
   const c = $('#fire'), ctx = c.getContext('2d'); let W, H, P = [];
