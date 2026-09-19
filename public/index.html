@@ -61,7 +61,7 @@
     font-size: clamp(40px, 8vw, 84px); line-height: 1.02; margin: 22px 0 18px;
     background: linear-gradient(100deg, #fff 0%, var(--amber) 35%, var(--orange) 55%, var(--cyan) 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
-    animation: shimmer 8s linear infinite; background-size: 200% 100%;
+    animation: rise .7s forwards, shimmer 8s linear infinite; background-size: 200% 100%;
   }
   @keyframes shimmer { to { background-position: 200% 0; } }
   .hero p { max-width: 640px; margin: 0 auto; color: var(--muted); font-size: clamp(16px, 2vw, 20px); }
@@ -121,6 +121,65 @@
   .p-hdd { background: linear-gradient(180deg, #a9adb8, #5a5f6b); }
   .p-empty { background: rgba(255,255,255,0.03); border-style: dashed; }
 
+  .scan { padding: 6px 0 34px; display: flex; flex-direction: column; gap: 18px; }
+  .scan-card {
+    display: flex; gap: 28px; align-items: center; flex-wrap: wrap;
+    border-radius: 24px; border: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    padding: 28px; backdrop-filter: blur(10px);
+  }
+  .qr-box {
+    position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    background: #fff; border-radius: 20px; padding: 16px;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.65);
+  }
+  .qr-box canvas {
+    display: block; width: clamp(160px, 42vw, 220px); height: clamp(160px, 42vw, 220px);
+    image-rendering: pixelated; border-radius: 8px;
+  }
+  .qr-caption {
+    font-size: 11px; color: #333; font-family: "Space Grotesk", ui-monospace, monospace;
+    word-break: break-all; text-align: center; max-width: 220px;
+  }
+  .scan-info { flex: 1 1 260px; min-width: 240px; }
+  .scan-info h3 { margin: 8px 0 8px; font-size: 24px; }
+  .scan-info p { margin: 0 0 18px; color: var(--muted); }
+  .bar-strip { border-radius: 18px; border: 1px solid var(--line); background: rgba(0,0,0,0.25); padding: 18px 20px; }
+  .bar-strip h3 {
+    margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+    font-family: "Space Grotesk", sans-serif;
+  }
+  .bar-strip-items { display: flex; gap: 12px; flex-wrap: wrap; min-height: 20px; }
+  .bar-item {
+    display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: 12px;
+    background: var(--card); border: 1px solid var(--line);
+  }
+  .bar-item .rank { font-family: "Space Grotesk", sans-serif; font-weight: 700; color: var(--amber); font-size: 16px; }
+  .bar-item .name { font-weight: 600; }
+  .bar-item .count { color: var(--muted); font-size: 13px; }
+  .bar-empty { color: var(--muted); font-size: 14px; align-self: center; }
+  @media (max-width: 700px) { .scan-card { flex-direction: column; text-align: center; } .scan-info { text-align: center; } }
+
+  .qr-overlay {
+    position: fixed; inset: 0; z-index: 999; background: rgba(3,4,10,0.96);
+    display: none; align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+    backdrop-filter: blur(6px);
+  }
+  .qr-overlay.open { display: flex; }
+  .qr-overlay-inner {
+    background: #fff; border-radius: 28px; padding: clamp(18px, 3vw, 32px);
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+  }
+  #qr-big { image-rendering: pixelated; display: block; max-width: 85vw; max-height: 70vh; }
+  .qr-overlay-url { color: #222; font-family: "Space Grotesk", ui-monospace, monospace; font-size: clamp(14px, 2vw, 20px); }
+  .qr-overlay-hint { color: var(--muted); font-size: 13px; }
+  .qr-overlay-close {
+    position: absolute; top: 22px; right: 22px; width: 46px; height: 46px; border-radius: 50%;
+    background: var(--card); border: 1px solid var(--line); color: var(--ink); font-size: 20px; cursor: pointer;
+  }
+  .qr-overlay-close:hover { background: rgba(255,255,255,0.15); }
+
   .how { padding: 10px 0 70px; }
   .how h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); text-align: center; margin: 0 0 18px; }
   .steps { display: grid; gap: 14px; grid-template-columns: 1fr; }
@@ -134,7 +193,7 @@
   .reveal { opacity: 0; transform: translateY(16px); animation: rise .7s forwards; }
   .reveal:nth-child(2) { animation-delay: .1s } .reveal:nth-child(3) { animation-delay: .2s }
   @keyframes rise { to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .reveal { animation: none; opacity: 1; transform: none; } .hero h1 { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .reveal { animation: none; opacity: 1; transform: none; } .hero h1 { animation: none; opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
@@ -189,6 +248,26 @@
     </a>
   </section>
 
+  <section class="scan reveal">
+    <div class="scan-card">
+      <div class="qr-box">
+        <canvas id="qr" width="220" height="220" role="img" aria-label="QR code linking to the ordering board"></canvas>
+        <div class="qr-caption" id="qr-caption">/orders</div>
+      </div>
+      <div class="scan-info">
+        <span class="eyebrow">📱 Scan to order</span>
+        <h3>Point a phone at the board</h3>
+        <p>Scan the code to open the ordering board straight away &mdash; no typing, no app. Running it at the bar camp? Blow it up for the projector.</p>
+        <button class="btn cyan" id="qr-fullscreen-btn" type="button">⛶ Fullscreen QR</button>
+      </div>
+    </div>
+
+    <div class="bar-strip">
+      <h3>🔥 Tonight at the bar</h3>
+      <div class="bar-strip-items" id="bar-strip-items"><span class="bar-empty">No orders yet &mdash; be the first!</span></div>
+    </div>
+  </section>
+
   <section class="how">
     <h3>How the board works</h3>
     <div class="steps">
@@ -201,9 +280,137 @@
   <footer>Built during AI Battle 26 · <a href="/orders">Orders</a> · <a href="/tetris">Tetris</a></footer>
 </div>
 
-<script>
+<div class="qr-overlay" id="qr-overlay" role="dialog" aria-modal="true" aria-label="Fullscreen QR code for the ordering board">
+  <button class="qr-overlay-close" id="qr-overlay-close" type="button" aria-label="Close">✕</button>
+  <div class="qr-overlay-inner">
+    <canvas id="qr-big" role="img" aria-label="QR code linking to the ordering board"></canvas>
+    <div class="qr-overlay-url" id="qr-overlay-url">/orders</div>
+  </div>
+  <div class="qr-overlay-hint">Press Esc or tap anywhere outside to close</div>
+</div>
+
+	QrCode.MIN_VERSION = 1;
+	QrCode.MAX_VERSION = 40;
+	QrCode.PENALTY_N1 = 3;
+	QrCode.PENALTY_N2 = 3;
+	QrCode.PENALTY_N3 = 40;
+	QrCode.PENALTY_N4 = 10;
+	QrCode.ECC_CODEWORDS_PER_BLOCK = [
+		[-1,  7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+		[-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28],
+		[-1, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28, 26, 30, 28, 30, 30, 30, 30, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+		[-1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28, 30, 24, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+	];
+	QrCode.NUM_ERROR_CORRECTION_BLOCKS = [
+		[-1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4,  4,  4,  4,  4,  6,  6,  6,  6,  7,  8,  8,  9,  9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25],
+		[-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5,  5,  8,  9,  9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49],
+		[-1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8,  8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23, 23, 25, 27, 29, 34, 34, 35, 38, 40, 43, 45, 48, 51, 53, 56, 59, 62, 65, 68],
+		[-1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32, 35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81],
+	];
+	QrCode.Ecc = QrCodeEcc;
+
+	return { QrCode: QrCode, QrSegment: QrSegment };
+})();
+
 (() => {
-  // ---- live stats card ----
+  // ---- scan-to-order QR code ----
+  const ORDERS_URL = location.origin + '/orders';
+  let qrModel = null;
+  try {
+    qrModel = qrcodegen.QrCode.encodeText(ORDERS_URL, qrcodegen.QrCode.Ecc.MEDIUM);
+  } catch (_) { qrModel = null; }
+
+  function drawQr(canvas, qr, cssSize) {
+    if (!canvas || !qr) return;
+    const border = 4; // quiet zone, in modules
+    const dim = qr.size + border * 2;
+    const dpr = window.devicePixelRatio || 1;
+    const px = Math.max(1, Math.round(cssSize * dpr));
+    canvas.width = px;
+    canvas.height = px;
+    canvas.style.width = cssSize + 'px';
+    canvas.style.height = cssSize + 'px';
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const cell = px / dim;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, px, px);
+    ctx.fillStyle = '#0b0b12';
+    for (let y = 0; y < qr.size; y++) {
+      for (let x = 0; x < qr.size; x++) {
+        if (!qr.getModule(x, y)) continue;
+        const x1 = Math.round((x + border) * cell);
+        const y1 = Math.round((y + border) * cell);
+        const x2 = Math.round((x + border + 1) * cell);
+        const y2 = Math.round((y + border + 1) * cell);
+        ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+      }
+    }
+  }
+
+  const qrCanvas = document.getElementById('qr');
+  const qrCaption = document.getElementById('qr-caption');
+  if (qrCaption) qrCaption.textContent = ORDERS_URL.replace(/^https?:\/\//, '');
+  if (qrModel && qrCanvas) {
+    drawQr(qrCanvas, qrModel, 220);
+  } else if (qrCanvas) {
+    qrCanvas.style.display = 'none';
+    if (qrCaption) qrCaption.textContent = 'Open ' + ORDERS_URL + ' on your phone';
+  }
+
+  const overlay = document.getElementById('qr-overlay');
+  const bigCanvas = document.getElementById('qr-big');
+  const overlayUrl = document.getElementById('qr-overlay-url');
+  const openBtn = document.getElementById('qr-fullscreen-btn');
+  const closeBtn = document.getElementById('qr-overlay-close');
+  if (overlayUrl) overlayUrl.textContent = ORDERS_URL;
+
+  function openOverlay() {
+    if (!qrModel || !overlay) return;
+    overlay.classList.add('open');
+    const size = Math.round(Math.min(innerWidth, innerHeight) * 0.8);
+    drawQr(bigCanvas, qrModel, Math.max(220, Math.min(size, 720)));
+    document.body.style.overflow = 'hidden';
+  }
+  function closeOverlay() {
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  if (openBtn) {
+    if (!qrModel) openBtn.disabled = true;
+    openBtn.addEventListener('click', openOverlay);
+  }
+  if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+  if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlay(); });
+  addEventListener('resize', () => { if (overlay && overlay.classList.contains('open')) openOverlay(); });
+})();
+
+(() => {
+  // ---- live stats card + "tonight at the bar" strip ----
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function renderTopItems(orders) {
+    const el = document.getElementById('bar-strip-items');
+    if (!el) return;
+    const counts = new Map();
+    for (const o of orders) {
+      const key = String(o.item || '').trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) || 0) + (Number(o.qty) || 0));
+    }
+    const top = [...counts.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    if (!top.length) {
+      el.innerHTML = '<span class="bar-empty">No orders yet &mdash; be the first!</span>';
+      return;
+    }
+    el.innerHTML = top.map(([name, n], i) =>
+      `<div class="bar-item"><span class="rank">#${i + 1}</span><span class="name">${escapeHtml(name)}</span><span class="count">${n}&times;</span></div>`
+    ).join('');
+  }
+
   async function stats() {
     try {
       const r = await fetch('/api/state', { cache: 'no-store' });
@@ -215,6 +422,7 @@
       rem.textContent = total - delivered; rem.classList.toggle('hot', total - delivered > 0);
       document.getElementById('l-total').textContent = total;
       document.getElementById('l-people').textContent = people;
+      renderTopItems(orders);
     } catch (_) { /* landing page still works offline */ }
   }
   stats(); setInterval(stats, 5000);

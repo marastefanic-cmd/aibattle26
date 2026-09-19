@@ -26,7 +26,7 @@ body{
   padding:12px 16px 24px;
 }
 header{text-align:center;margin:4px 0 12px;position:relative;max-width:1000px;margin-left:auto;margin-right:auto}
-.hub,.mute{position:absolute;top:2px;font-size:13px;color:var(--muted);text-decoration:none;background:rgba(20,25,36,.8);border:1px solid var(--line);border-radius:8px;padding:6px 10px;line-height:1;cursor:pointer;font-family:inherit}
+.hub,.mute{position:absolute;z-index:5;top:2px;font-size:13px;color:var(--muted);text-decoration:none;background:rgba(20,25,36,.8);border:1px solid var(--line);border-radius:8px;padding:6px 10px;line-height:1;cursor:pointer;font-family:inherit}
 .hub{left:0}.mute{right:0;font-size:16px;padding:4px 8px}
 .hub:hover,.mute:hover{color:var(--text);border-color:#3a4a6c}
 .ticker{position:fixed;right:10px;bottom:10px;z-index:5;max-width:min(300px,calc(100vw - 20px));background:rgba(12,15,22,.9);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.4)}
@@ -39,6 +39,7 @@ header{text-align:center;margin:4px 0 12px;position:relative;max-width:1000px;ma
 h1{margin:0;font-size:clamp(22px,4vw,34px);letter-spacing:.06em;text-transform:uppercase;
    background:linear-gradient(90deg,var(--accent),var(--blue) 50%,var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;
    filter:drop-shadow(0 0 12px rgba(79,140,255,.35))}
+header h1,header p{pointer-events:none}
 header p{margin:4px 0 0;color:var(--muted);font-size:13px}
 .game{display:grid;grid-template-columns:200px auto 200px;gap:16px;justify-content:center;align-items:start;max-width:1000px;margin:0 auto}
 .side{display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -67,14 +68,17 @@ header p{margin:4px 0 0;color:var(--muted);font-size:13px}
 .overlay p{margin:0 0 16px;color:var(--muted);font-size:14px;white-space:pre-line;line-height:1.5}
 .overlay button,.touch button{font:inherit;cursor:pointer}
 .overlay button{background:linear-gradient(180deg,#3ee89a,#22b56e);color:#06140c;border:0;border-radius:8px;padding:10px 22px;font-weight:700;font-size:15px;letter-spacing:.04em;box-shadow:0 4px 14px rgba(57,217,138,.35)}
-.touch{display:none;max-width:420px;margin:14px auto 0;gap:8px;grid-template-columns:repeat(4,1fr)}
+.touch{display:none;max-width:420px;width:100%;margin:0 auto;gap:8px;grid-template-columns:repeat(4,1fr);grid-column:1/-1}
 .touch button{background:linear-gradient(180deg,#232b3d,#171d2b);border:1px solid var(--line);border-bottom-width:3px;color:var(--text);border-radius:10px;padding:14px 0;font-size:20px;touch-action:none;line-height:1}
 .touch button:active{background:#2c3550;transform:translateY(1px)}
 .touch button.small{font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:12px 0}
 .touch .wide{grid-column:span 2}
 @media (max-width:900px){
   body{padding:8px 16px 20px}
+  header{padding-top:34px}
+  .hub,.mute{top:0}
   .game{grid-template-columns:1fr;gap:12px}
+  .side.right .stats{grid-column:1/-1}
   .boardwrap{justify-self:center;order:1}
   #board{width:auto;height:min(62vh,640px);aspect-ratio:1/2}
   .touch{display:grid;order:2}
@@ -154,8 +158,6 @@ Space hard drop, C hold, P pause</p>
       <kbd>M</kbd> mute sound
     </section>
   </aside>
-</main>
-
 <div class="touch" id="touch">
   <button type="button" data-action="left" data-repeat="1" aria-label="Move left">&larr;</button>
   <button type="button" data-action="right" data-repeat="1" aria-label="Move right">&rarr;</button>
@@ -166,6 +168,7 @@ Space hard drop, C hold, P pause</p>
   <button type="button" data-action="drop" class="small" aria-label="Hard drop">Drop</button>
   <button type="button" data-action="pause" class="small" aria-label="Pause">Pause</button>
 </div>
+</main>
 
 <script src="sfx.js"></script>
 <script>
@@ -836,7 +839,8 @@ window.PCTetris = {
   start: start, state: function () { return state; }, score: function () { return score; },
   fillRows: function (n) { // debug helper: fill the bottom n rows except column 0
     for (var r = TOTAL - n; r < TOTAL; r++) for (var c = 1; c < COLS; c++) board[r][c] = TYPES[(r + c) % 7];
-  }
+  },
+  forcePiece: function (t) { if (state === 'playing' && SHAPES[t]) spawn(t); }
 };
 })();
 </script>
