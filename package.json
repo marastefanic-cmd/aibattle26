@@ -4,7 +4,11 @@
   "description": "BarCamp bar ordering board: collect orders, see what needs ordering, track what's left",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test test/"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
 }
