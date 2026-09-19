@@ -1,0 +1,28 @@
+app = "barcamp-orders"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "3000"
+
+[[mounts]]
+  source = "barcamp_data"
+  destination = "/app/data"
+
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.http_checks]]
+    path = "/api/state"
+    interval = "30s"
+    timeout = "5s"

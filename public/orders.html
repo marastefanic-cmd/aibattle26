@@ -37,7 +37,10 @@
     padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--card);
     position: sticky; top: 0; z-index: 5;
   }
-  header h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  header h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; display: flex; align-items: center; gap: 6px; }
+  header h1 a { text-decoration: none; color: inherit; }
+  #logo { cursor: pointer; user-select: none; display: inline-block; transition: transform .15s; }
+  #logo:active { transform: scale(1.25) rotate(-8deg); }
   header .stats { display: flex; gap: 14px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
   header .stats b { color: var(--ink); font-size: 18px; }
   .status { font-size: 12px; color: var(--muted); }
@@ -62,7 +65,8 @@
     width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
     background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
   }
-  form input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  form textarea { resize: vertical; min-height: 84px; }
+  form input:focus, form textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
   .row { display: flex; gap: 8px; }
   .qty { display: flex; align-items: stretch; }
   .qty button { width: 44px; font-size: 20px; }
@@ -74,13 +78,21 @@
     border: 1px solid var(--line); background: var(--bg); color: var(--ink);
     border-radius: 999px; padding: 6px 12px; font-size: 14px; cursor: pointer;
   }
+  .chip small { color: var(--muted); font-size: 11px; margin-left: 4px; }
   .chip:hover, .chip.active { border-color: var(--accent); color: var(--accent); }
+  .menu-group { margin-top: 10px; }
+  .menu-group .cat { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .menu-group .chips { margin-top: 4px; }
+  .menu-scroll { max-height: 260px; overflow: auto; padding-right: 4px; }
+  .form-extra { display: flex; gap: 8px; margin-top: 10px; }
+  .form-extra > * { flex: 1; text-align: center; font-size: 14px; }
+  a.btn { display: inline-block; text-decoration: none; }
 
-  button {
+  button, a.btn {
     font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--bg);
     color: var(--ink); border-radius: 8px; padding: 8px 12px;
   }
-  button:hover { border-color: var(--muted); }
+  button:hover, a.btn:hover { border-color: var(--muted); }
   button.primary {
     background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
     width: 100%; padding: 12px; font-size: 17px; font-weight: 600; margin-top: 14px;
@@ -88,10 +100,15 @@
   button.primary:disabled { opacity: 0.6; cursor: default; }
   button.ghost { background: transparent; }
   button.danger { color: var(--danger); }
-  button.small { padding: 5px 9px; font-size: 13px; }
+  button.small, a.btn.small { padding: 5px 9px; font-size: 13px; }
 
   .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .tabs button.active { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .tabs button .count {
+    display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; background: var(--accent); color: var(--accent-ink); line-height: 18px;
+  }
+  .tabs button .count:empty { display: none; }
 
   table { width: 100%; border-collapse: collapse; }
   th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -118,22 +135,71 @@
   .person-group h3 { margin: 0 0 6px; font-size: 16px; display: flex; justify-content: space-between; align-items: baseline; }
   .person-group h3 small { color: var(--muted); font-weight: normal; font-size: 13px; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .toolbar .row { flex-wrap: wrap; align-items: center; }
+
+  /* requests */
+  .req-list { list-style: none; margin: 0; padding: 0; }
+  .req-list li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  .req-list li.done .req-text { text-decoration: line-through; color: var(--muted); }
+  .req-list input[type="checkbox"] { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--ok); }
+  .req-body { flex: 1; min-width: 0; }
+  .req-text { font-size: 16px; overflow-wrap: anywhere; }
+  .req-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+
+  /* modal */
+  dialog {
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--ink);
+    padding: 20px; width: min(440px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.45); backdrop-filter: blur(2px); }
+  dialog h2 { font-size: 18px; margin: 0 0 4px; }
+  dialog p.hint { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+  dialog .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  dialog .dlg-actions button.primary { width: auto; margin: 0; padding: 8px 16px; font-size: 15px; }
+  .charcount { font-size: 12px; color: var(--muted); text-align: right; margin-top: 4px; }
+
   .toast {
     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
     background: var(--ink); color: var(--card); padding: 10px 16px; border-radius: 999px;
     font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10;
+    max-width: calc(100vw - 32px); text-align: center;
   }
   .toast.show { opacity: 1; }
+
+  /* easter eggs: party mode, beer rain, confetti */
+  @keyframes party-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+  @keyframes party-slide { from { background-position: 0 0; } to { background-position: 400% 0; } }
+  body.party header {
+    border-bottom: 4px solid transparent;
+    border-image: linear-gradient(90deg, #ff4d4d, #ffb84d, #ffff4d, #4dff88, #4dd2ff, #b84dff, #ff4d4d) 1;
+    animation: party-hue 3s linear infinite;
+  }
+  body.party header h1 {
+    background: linear-gradient(90deg, #ff4d4d, #ffb84d, #4dff88, #4dd2ff, #b84dff, #ff4d4d);
+    background-size: 400% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: party-slide 6s linear infinite;
+  }
+  body.party header h1 #logo { color: var(--ink); -webkit-text-fill-color: var(--ink); }
+  body.party button.primary { background-size: 400% 100%; background-image: linear-gradient(90deg, #ff4d4d, #ffb84d, #4dff88, #4dd2ff, #b84dff, #ff4d4d); animation: party-slide 6s linear infinite; border-color: transparent; color: #111; }
+  .fx-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+  @keyframes beer-fall { from { transform: translateY(-10vh) rotate(0deg); } to { transform: translateY(110vh) rotate(360deg); } }
+  .fx-layer .beer { position: absolute; top: 0; font-size: 28px; animation: beer-fall linear forwards; will-change: transform; }
+  @keyframes confetti-fall { 0% { transform: translate3d(0, -10vh, 0) rotate(0); opacity: 1; } 100% { transform: translate3d(var(--dx), 105vh, 0) rotate(720deg); opacity: .9; } }
+  .fx-layer .confetti { position: absolute; top: 0; width: 8px; height: 14px; border-radius: 2px; animation: confetti-fall ease-in forwards; will-change: transform; }
+  @media (prefers-reduced-motion: reduce) { .fx-layer { display: none; } body.party header, body.party header h1, body.party button.primary { animation: none; } }
+
   @media (max-width: 600px) {
     th.hide-sm, td.hide-sm { display: none; }
     header h1 { font-size: 17px; }
+    header .stats { gap: 10px; font-size: 12px; }
+    header .stats b { font-size: 15px; }
   }
 </style>
 </head>
 <body>
 <header>
   <div>
-    <h1><a href="/" style="text-decoration:none;color:inherit" title="Back to home">🍻</a> BarCamp Orders</h1>
+    <h1><span id="logo" title="🍻" aria-hidden="true">🍻</span> <a href="/" title="Back to home">BarCamp Orders</a></h1>
     <div class="status" id="status">connecting…</div>
   </div>
   <div class="stats">
@@ -141,6 +207,7 @@
     <div>Ordered <b id="stat-total">0</b></div>
     <div>Delivered <b id="stat-delivered">0</b></div>
     <div>People <b id="stat-people">0</b></div>
+    <div>Requests <b id="stat-requests">0</b></div>
   </div>
 </header>
 
@@ -155,7 +222,7 @@
         <label for="item">What do you want?</label>
         <input id="item" name="item" list="item-list" placeholder="e.g. Pilsner 0.5l" required maxlength="80">
         <datalist id="item-list"></datalist>
-        <div class="chips" id="quick-items"></div>
+        <div class="menu-scroll" id="quick-items"></div>
 
         <label for="qty">How many</label>
         <div class="qty">
@@ -169,6 +236,10 @@
 
         <button class="primary" type="submit" id="submit-btn">Add to the list</button>
       </form>
+      <div class="form-extra">
+        <button type="button" id="open-request" class="ghost">✋ Special request</button>
+        <a class="btn ghost" id="menu-pdf" href="/api/menu.pdf" target="_blank" rel="noopener">📄 Menu (PDF)</a>
+      </div>
     </div>
   </section>
 
@@ -179,6 +250,7 @@
           <button type="button" data-view="items" class="active">What to order</button>
           <button type="button" data-view="people">By person</button>
           <button type="button" data-view="log">All orders</button>
+          <button type="button" data-view="requests">Requests<span class="count" id="tab-requests-count"></span></button>
         </div>
         <div class="row">
           <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;margin:0">
@@ -192,14 +264,34 @@
   </section>
 </main>
 
-<div class="toast" id="toast"></div>
+<dialog id="request-dialog" aria-labelledby="request-title">
+  <form id="request-form" autocomplete="off">
+    <h2 id="request-title">✋ Special request</h2>
+    <p class="hint">Anything that isn't a drink or a dish: "can someone bring a bottle opener", "table 4 needs napkins"…</p>
+    <label for="req-name">Your name</label>
+    <input id="req-name" name="name" placeholder="e.g. Mara" required maxlength="60">
+    <label for="req-text">Request</label>
+    <textarea id="req-text" name="text" placeholder="What do you need?" required maxlength="300"></textarea>
+    <div class="charcount"><span id="req-count">0</span>/300</div>
+    <div class="dlg-actions">
+      <button type="button" id="req-cancel">Cancel</button>
+      <button type="submit" class="primary" id="req-submit">Send request</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="fx-layer" id="fx" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 (() => {
   const $ = (s) => document.querySelector(s);
-  const QUICK = ['Beer 0.5l', 'Beer 0.3l', 'Radler', 'Wine white', 'Wine red', 'Spritz', 'Gin tonic', 'Cola', 'Water', 'Coffee', 'Fries', 'Pizza'];
+  // Fallback chips if /api/menu is unreachable; normally replaced by the server menu.
+  const FALLBACK_QUICK = ['Beer 0.5l', 'Beer 0.3l', 'Radler', 'Wine white', 'Wine red', 'Spritz', 'Gin tonic', 'Cola', 'Water', 'Coffee', 'Fries', 'Pizza'];
 
   let orders = [];
+  let requests = [];
+  let menu = null; // [{category, items:[{name, price}]}]
   let view = localStorage.getItem('bc.view') || 'items';
   let hideDone = localStorage.getItem('bc.hideDone') === '1';
   let pollTimer = null;
@@ -209,10 +301,12 @@
   const keyOf = (s) => s.trim().toLowerCase();
   const timeOf = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const remaining = (o) => Math.max(0, o.qty - o.delivered);
+  const menuItems = () => (menu ? menu.flatMap((c) => c.items.map((i) => i.name)) : FALLBACK_QUICK);
+  const price = (p) => '€' + Number(p).toFixed(2);
 
-  function toast(msg) {
+  function toast(msg, ms = 1800) {
     const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
   }
 
   async function api(method, url, body) {
@@ -233,7 +327,8 @@
   async function refresh() {
     try {
       const data = await api('GET', '/api/state');
-      orders = data.orders;
+      orders = data.orders || [];
+      requests = data.requests || [];
       $('#status').textContent = 'live · updated ' + timeOf(Date.now());
       $('#status').classList.remove('offline');
       render();
@@ -241,6 +336,15 @@
       $('#status').textContent = 'offline – retrying…';
       $('#status').classList.add('offline');
     }
+  }
+
+  async function loadMenu() {
+    try {
+      const data = await api('GET', '/api/menu');
+      if (Array.isArray(data.menu) && data.menu.length) menu = data.menu;
+    } catch (_) { /* keep fallback chips */ }
+    renderMenuChips();
+    renderDatalist();
   }
 
   function startPolling() {
@@ -253,21 +357,34 @@
     const total = orders.reduce((a, o) => a + o.qty, 0);
     const delivered = orders.reduce((a, o) => a + o.delivered, 0);
     const people = new Set(orders.map((o) => keyOf(o.name))).size;
+    const openReq = requests.filter((r) => !r.done).length;
     $('#stat-remaining').textContent = total - delivered;
     $('#stat-total').textContent = total;
     $('#stat-delivered').textContent = delivered;
     $('#stat-people').textContent = people;
+    $('#stat-requests').textContent = openReq;
+    $('#tab-requests-count').textContent = openReq ? String(openReq) : '';
     document.title = (total - delivered > 0 ? `(${total - delivered}) ` : '') + 'BarCamp Orders';
   }
 
   function renderDatalist() {
-    const names = new Set(QUICK.map(keyOf));
-    const list = [...QUICK];
+    const base = menuItems();
+    const names = new Set(base.map(keyOf));
+    const list = [...base];
     orders.forEach((o) => { if (!names.has(keyOf(o.item))) { names.add(keyOf(o.item)); list.push(o.item); } });
     $('#item-list').innerHTML = list.map((i) => `<option value="${esc(i)}">`).join('');
-    if (!$('#quick-items').children.length) {
-      $('#quick-items').innerHTML = QUICK.map((i) => `<button type="button" class="chip" data-item="${esc(i)}">${esc(i)}</button>`).join('');
+  }
+
+  function renderMenuChips() {
+    const box = $('#quick-items');
+    if (!menu) {
+      box.innerHTML = `<div class="chips">${FALLBACK_QUICK.map((i) => `<button type="button" class="chip" data-item="${esc(i)}">${esc(i)}</button>`).join('')}</div>`;
+      return;
     }
+    box.innerHTML = menu.map((c) => `<div class="menu-group">
+      <div class="cat">${esc(c.category)}</div>
+      <div class="chips">${c.items.map((i) => `<button type="button" class="chip" data-item="${esc(i.name)}" title="${esc(i.name)} – ${esc(price(i.price))}">${esc(i.name)}<small>${esc(price(i.price))}</small></button>`).join('')}</div>
+    </div>`).join('');
   }
 
   function groupByItem() {
@@ -343,8 +460,9 @@
     return people.map((p) => {
       const total = p.orders.reduce((a, o) => a + o.qty, 0);
       const rem = p.orders.reduce((a, o) => a + remaining(o), 0);
+      const myReq = requests.filter((r) => keyOf(r.name) === keyOf(p.name) && !r.done).length;
       return `<div class="person-group">
-        <h3><span>${esc(p.name)}</span><small>${total} item${total === 1 ? '' : 's'} · ${rem ? rem + ' still coming' : 'all delivered'}</small></h3>
+        <h3><span>${esc(p.name)}</span><small>${total} item${total === 1 ? '' : 's'} · ${rem ? rem + ' still coming' : 'all delivered'}${myReq ? ` · ✋ ${myReq} request${myReq === 1 ? '' : 's'}` : ''}</small></h3>
         <table><tbody>${p.orders.map((o) => orderRow(o, false)).join('')}</tbody></table>
       </div>`;
     }).join('');
@@ -357,12 +475,31 @@
     return `<table><tbody>${list.map((o) => orderRow(o, true)).join('')}</tbody></table>`;
   }
 
+  function viewRequests() {
+    let list = [...requests].sort((a, b) => (a.done - b.done) || (b.createdAt - a.createdAt));
+    if (hideDone) list = list.filter((r) => !r.done);
+    const head = `<div class="req-toolbar">
+      <span class="note">Things that aren't on the menu: tools, napkins, a chair, help…</span>
+      <button type="button" class="small" data-act="new-request">✋ New request</button>
+    </div>`;
+    if (!list.length) return head + `<div class="empty">${requests.length ? 'All requests handled 👍' : 'No special requests yet.'}</div>`;
+    return head + `<ul class="req-list">${list.map((r) => `<li class="${r.done ? 'done' : ''}" data-id="${r.id}">
+      <input type="checkbox" data-act="req-toggle" data-id="${r.id}" ${r.done ? 'checked' : ''} aria-label="mark request done">
+      <div class="req-body">
+        <div class="req-text">${esc(r.text)}</div>
+        <div class="note">by <b>${esc(r.name)}</b> · ${timeOf(r.createdAt)}${r.done ? ' · done' : ''}</div>
+      </div>
+      <button class="small danger ghost" data-act="req-delete" data-id="${r.id}" title="remove request">✕</button>
+    </li>`).join('')}</ul>`;
+  }
+
   function render() {
     renderStats();
     renderDatalist();
     document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
     $('#hide-done').checked = hideDone;
-    $('#view').innerHTML = view === 'items' ? viewItems() : view === 'people' ? viewPeople() : viewLog();
+    $('#view').innerHTML = view === 'items' ? viewItems() : view === 'people' ? viewPeople() : view === 'requests' ? viewRequests() : viewLog();
+    maybeCelebrate();
   }
 
   // ---------- actions ----------
@@ -371,11 +508,25 @@
     catch (e) { toast('Failed: ' + e.message); }
   }
 
+  $('#view').addEventListener('change', async (ev) => {
+    const box = ev.target.closest('input[data-act="req-toggle"]');
+    if (!box) return;
+    try { await api('PATCH', '/api/requests/' + box.dataset.id, { done: box.checked }); refresh(); }
+    catch (e) { toast('Failed: ' + e.message); refresh(); }
+  });
+
   $('#view').addEventListener('click', async (ev) => {
     const btn = ev.target.closest('button[data-act]');
     if (!btn) return;
     const act = btn.dataset.act;
     const id = btn.dataset.id;
+    if (act === 'new-request') return openRequestDialog();
+    if (act === 'req-delete') {
+      const r = requests.find((x) => x.id == id);
+      if (r && !confirm(`Remove ${r.name}'s request?`)) return;
+      try { await api('DELETE', '/api/requests/' + id); toast('Request removed'); refresh(); } catch (e) { toast('Failed: ' + e.message); }
+      return;
+    }
     if (act === 'deliver') return patch(id, { deliverDelta: 1 });
     if (act === 'done') return patch(id, { done: true });
     if (act === 'undo') return patch(id, { done: false });
@@ -410,8 +561,8 @@
     hideDone = e.target.checked; localStorage.setItem('bc.hideDone', hideDone ? '1' : '0'); render();
   });
   $('#new-round').addEventListener('click', async () => {
-    if (!orders.length) return toast('Board is already empty');
-    if (!confirm('Clear ALL orders for everyone? This cannot be undone.')) return;
+    if (!orders.length && !requests.length) return toast('Board is already empty');
+    if (!confirm('Clear ALL orders and requests for everyone? This cannot be undone.')) return;
     try { await api('DELETE', '/api/orders'); toast('Board cleared'); refresh(); } catch (e) { toast('Failed: ' + e.message); }
   });
 
@@ -440,7 +591,8 @@
     try {
       await api('POST', '/api/orders', body);
       localStorage.setItem('bc.name', body.name);
-      toast(`Added ${body.qty} × ${body.item} for ${body.name}`);
+      const egg = orderEgg(body);
+      if (egg) toast(egg, 3500); else toast(`Added ${body.qty} × ${body.item} for ${body.name}`);
       $('#item').value = ''; $('#qty').value = 1; $('#note').value = '';
       document.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
       $('#item').focus();
@@ -449,8 +601,112 @@
     finally { btn.disabled = false; }
   });
 
+  // ---------- special request modal ----------
+  const dlg = $('#request-dialog');
+  const reqText = $('#req-text');
+  function openRequestDialog() {
+    $('#req-name').value = nameInput.value.trim() || localStorage.getItem('bc.name') || '';
+    reqText.value = ''; $('#req-count').textContent = '0';
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
+    ($('#req-name').value ? reqText : $('#req-name')).focus();
+  }
+  function closeRequestDialog() { if (dlg.open) dlg.close(); else dlg.removeAttribute('open'); }
+  $('#open-request').addEventListener('click', openRequestDialog);
+  $('#req-cancel').addEventListener('click', closeRequestDialog);
+  reqText.addEventListener('input', () => { $('#req-count').textContent = String(reqText.value.length); });
+  dlg.addEventListener('click', (ev) => { if (ev.target === dlg) closeRequestDialog(); }); // click on backdrop
+  $('#request-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const body = { name: $('#req-name').value.trim(), text: reqText.value.trim().slice(0, 300) };
+    if (!body.name || !body.text) return toast('Name and request are required');
+    const btn = $('#req-submit'); btn.disabled = true;
+    try {
+      await api('POST', '/api/requests', body);
+      localStorage.setItem('bc.name', body.name);
+      if (!nameInput.value) nameInput.value = body.name;
+      closeRequestDialog();
+      toast('Request sent ✋');
+      await refresh();
+    } catch (e) { toast('Failed: ' + e.message); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---------- easter eggs (harmless, non-blocking) ----------
+  const fx = $('#fx');
+  function orderEgg(body) {
+    if (body.qty === 42) return 'The answer to life, the universe and everything… and thirst.';
+    if (/\bcoffee\b/i.test(body.item) && new Date().getHours() >= 22) return 'Brave. ☕ at this hour?';
+    return null;
+  }
+
+  // Konami code -> beer rain
+  const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+  let konamiPos = 0;
+  document.addEventListener('keydown', (ev) => {
+    const k = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+    konamiPos = k === KONAMI[konamiPos] ? konamiPos + 1 : (k === KONAMI[0] ? 1 : 0);
+    if (konamiPos === KONAMI.length) { konamiPos = 0; beerRain(); toast('🍺 Beer rain! Cheers to the konami crew.', 3000); }
+  });
+  function beerRain(n = 40, seconds = 4) {
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('span');
+      el.className = 'beer'; el.textContent = '🍺';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.animationDuration = (2 + Math.random() * 2) + 's';
+      el.style.animationDelay = (Math.random() * (seconds - 2)) + 's';
+      el.style.fontSize = (20 + Math.random() * 20) + 'px';
+      fx.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+    setTimeout(() => fx.querySelectorAll('.beer').forEach((e) => e.remove()), (seconds + 3) * 1000);
+  }
+
+  // Confetti when everything is delivered (once per "all delivered" moment)
+  let celebratedKey = null;
+  function maybeCelebrate() {
+    if (!orders.length) { celebratedKey = null; return; }
+    const allDone = orders.every((o) => remaining(o) === 0);
+    if (!allDone) { celebratedKey = null; return; }
+    const key = orders.map((o) => o.id + ':' + o.qty).join(',');
+    if (celebratedKey === key) return;
+    celebratedKey = key;
+    confetti();
+  }
+  function confetti(n = 90) {
+    const colors = ['#ff4d4d', '#ffb84d', '#ffe74d', '#4dff88', '#4dd2ff', '#b84dff', '#ff7ab8'];
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement('i');
+      el.className = 'confetti';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.background = colors[i % colors.length];
+      el.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+      el.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      el.style.animationDelay = (Math.random() * 0.8) + 's';
+      el.style.transform = `rotate(${Math.random() * 360}deg)`;
+      fx.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+    setTimeout(() => fx.querySelectorAll('.confetti').forEach((e) => e.remove()), 6000);
+  }
+
+  // Party mode: click the 🍻 five times quickly
+  let logoClicks = [];
+  function setParty(on, announce) {
+    document.body.classList.toggle('party', on);
+    try { localStorage.setItem('bc.party', on ? '1' : '0'); } catch (_) {}
+    if (announce) toast(on ? '🎉 Party mode ON' : 'Party mode off. Back to work.', 2200);
+  }
+  $('#logo').addEventListener('click', () => {
+    const now = Date.now();
+    logoClicks = logoClicks.filter((t) => now - t < 1500); logoClicks.push(now);
+    if (logoClicks.length >= 5) { logoClicks = []; setParty(!document.body.classList.contains('party'), true); }
+  });
+  try { if (localStorage.getItem('bc.party') === '1') setParty(true, false); } catch (_) {}
+
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 
+  renderMenuChips();
+  loadMenu();
   refresh();
   startPolling();
   if (!nameInput.value) nameInput.focus(); else $('#item').focus();
