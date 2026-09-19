@@ -15,6 +15,8 @@ const ROUTES = {
   '/': 'index.html',
   '/orders': 'orders.html',
   '/orders/': 'orders.html',
+  '/roast': 'roast.html',
+  '/roast/': 'roast.html',
   '/tetris': path.join(TETRIS_DIR, 'index.html'),
   '/tetris/': path.join(TETRIS_DIR, 'index.html'),
 };
