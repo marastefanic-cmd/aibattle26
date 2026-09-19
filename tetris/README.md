@@ -69,8 +69,23 @@ The "Parts bin" panel in the game shows the same legend with a live rendering of
 A small ticker in the corner (bottom-right on desktop, under the title on phones)
 tracks the "price" of a DDR5 32 GB kit. It only goes up. It rises every few seconds,
 faster and by larger steps the higher your level, with occasional headlines such as
-"AI datacenters buy everything". It resets to $89.99 when you restart. It is purely
-decorative and never blocks play.
+"AI datacenters buy everything". Every line you clear also shoves the price up
+(roughly +6 % per line, +22 % extra for a Tetris). It resets to $89.99 when you
+restart. It is purely decorative and never blocks play.
+
+Behind the playfield a low-opacity "stonks" chart plots the price live: green
+segments for the time-based creep, red spikes (with a label) for line clears, price
+labels on the right axis. It scrolls as it fills and resets with the game.
+
+Every line clear also opens a retro alert dialog over the top of the board (a
+Windows-95-style grey box with a blue title bar, or a green-on-black terminal box,
+with a blinking cursor and scanlines) that yells at you about RAM prices. There are
+28 messages; the tone escalates with the number of lines cleared, some quote the
+live price, and a handful break the fourth wall. A four-line clear adds a full-screen
+red "MARKET CRASH... UPWARDS" flash. The dialog auto-dismisses after ~2.5 s, can be
+closed with its X or OK button, and never takes keyboard focus, so play continues
+underneath. Screen shake and the dialog glitch animation are disabled when the OS
+asks for reduced motion.
 
 ## About the framework at blit386.dev
 
