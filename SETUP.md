@@ -10,12 +10,14 @@ the build tools if the installer offers it (needed for the terminal component on
 
 ## 2. Get the app
 
-Download this repository as a ZIP from GitHub and unzip it somewhere permanent (for example
-`Documents/Rulebook Studio`), or:
+Install git if needed (<https://git-scm.com>; on macOS, running `git` once in Terminal offers to
+install it), then in a terminal, in the folder where the app should live (for example `Documents`):
 
 ```bash
 git clone https://github.com/marastefanic-cmd/bendaide "Rulebook Studio"
 ```
+
+Use `git clone` rather than a ZIP download: that is what makes updates automatic later.
 
 ## 3. Start it
 
@@ -73,4 +75,7 @@ Back up `workspace/` and you have everything.
 - **Old `.doc` files** → save them as `.docx` first; `.docx` and `.xlsx` are converted automatically.
 - **Something broke after "Ask for a change in the app"** → in the app folder run
   `git checkout -- .` (undoes uncommitted changes; only for a git checkout), then restart.
-- **Updating**: `git pull` in the app folder, then restart.
+- **Updating**: automatic. Every start fetches the latest version from GitHub before launching
+  (this needs the app to have been installed with `git clone`, not from a ZIP). If the assistant
+  had changed the app locally and those changes clash with the update, the start window says so;
+  the local changes are kept in `git stash list` and the app starts on the updated version.

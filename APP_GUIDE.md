@@ -96,6 +96,10 @@ to Markdown (mammoth) and `.xlsx/.xls` to CSV (SheetJS) next to the original on 
   react, react-markdown, @xterm/xterm, @anthropic-ai/claude-code (for the bundled `claude`).
 - Changes to `server/terminal-host.ts` or `scripts/dev-server.mjs` need a full app restart;
   say so to the user. Everything else hot-reloads.
+- The start scripts run `git pull --ff-only` on every start (local changes are stashed and
+  restored around it). So: never modify the starter files under `workspace/global/` in the
+  repository again — the user's edited copies would conflict — and keep app changes small and
+  local so they re-apply cleanly on top of updates.
 
 ## Running
 
