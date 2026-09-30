@@ -153,24 +153,24 @@ api.get('/sessions/:owner/:sid/context', wrap(async (req) => ({ text: await buil
 api.post('/quit', wrap(async (_req, res) => {
   res.json({ ok: true });
   const pidsFile = path.join(RUN_DIR, 'pids.json');
-  let pids: number[] = [];
+  let pids: { supervisor?: number; vite?: number } = {};
   try {
-    const data = JSON.parse(fs.readFileSync(pidsFile, 'utf8')) as Record<string, unknown>;
-    pids = Object.values(data).filter((v): v is number => typeof v === 'number');
+    pids = JSON.parse(fs.readFileSync(pidsFile, 'utf8')) as typeof pids;
     fs.unlinkSync(pidsFile);
   } catch { /* not started via the launcher */ }
-  const signalAll = (signal: NodeJS.Signals) => {
-    for (const pid of pids) {
-      try {
-        if (process.platform === 'win32') spawn('taskkill', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore', windowsHide: true });
-        else process.kill(-pid, signal); // the launcher starts each one as its own process group
-      } catch { /* already gone */ }
-    }
+  const kill = (pid: number | undefined, signal: NodeJS.Signals) => {
+    if (!pid) return;
+    try {
+      if (process.platform === 'win32') spawn('taskkill', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore', windowsHide: true });
+      else process.kill(-pid, signal); // the launcher starts each one as its own process group
+    } catch { /* already gone */ }
   };
   setTimeout(() => {
-    signalAll('SIGTERM');
-    // The Vite dev server ignores SIGTERM when detached; make sure nothing lingers.
-    setTimeout(() => { signalAll('SIGKILL'); process.exit(0); }, 1500);
+    // The UI dev server ignores SIGTERM when detached, so it is hard-killed first. The supervisor's
+    // group (terminal host + this API server) is stopped last, since that ends this process too.
+    kill(pids.vite, 'SIGKILL');
+    kill(pids.supervisor, 'SIGTERM');
+    setTimeout(() => process.exit(0), 1000); // in case this server was started by hand
   }, 300);
 }));
 
