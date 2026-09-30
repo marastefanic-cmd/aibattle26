@@ -1,2 +1,6 @@
 node_modules/
-data/orders.json
+dist/
+.env
+# Session transcripts are personal working data; global docs and project context are kept.
+workspace/projects/*/sessions/
+.DS_Store

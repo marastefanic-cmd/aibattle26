@@ -1,44 +1,51 @@
-# 🍻 BarCamp Orders
+# Rulebook Studio
 
-A tiny shared ordering board for a bar camp: everyone adds what they want,
-the bar runner sees what needs ordering, who ordered it, and how many items
-are still missing.
+Context-managed AI sessions for reviewing boardgame rulebook translations.
 
-No dependencies. Node 18+ is all you need.
+You keep **global** instructions, methodology and example files in one place, put each game's
+original rules, translation, glossary, changelog and buglist in a **project**, and then start
+disposable **sessions** whose agent is preloaded with exactly the files you pick. Each session
+does one review round (spellcheck, terminology consistency, formatting conventions, comparison
+against the original…), records what it found, and can be thrown away.
+
+Built on the [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk), so the agent can read
+PDFs, edit files, and even modify this app (it hot-reloads).
+
+## Quick start
 
 ```bash
-npm start            # http://localhost:3000
-PORT=8080 npm start  # different port
+cp .env.example .env    # set ANTHROPIC_API_KEY, or CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`
+npm install
+npm run dev             # http://localhost:5173
 ```
 
-Open the URL on every phone/laptop in the room; the board polls every 3 s so
-everyone sees the same state.
+Then:
 
-## Features
+1. Edit the starter docs under **Global** in the Context panel (instructions, methodology, example).
+2. Create a project, upload the original rules and the translation, fill in the glossary.
+3. Start a session and tell it what to check.
 
-- **Add your order** – name (remembered on your device), item (quick chips + autocomplete), quantity, note.
-- **What to order** – items grouped with remaining / ordered / delivered counts, who ordered how many, and one-click "+1 delivered" / "All delivered".
-- **By person** – every person's orders, with what's still coming.
-- **All orders** – chronological log with per-order delivered ticks, quantity +/-, undo and delete.
-- **Requests** – "✋ Special request" opens a modal for things that aren't on the menu ("can someone bring a bottle opener", "table 4 needs napkins"). Requests show up in their own tab with done-toggle and delete, plus a count badge in the header.
-- **Menu** – quick chips are grouped by category with prices (from `/api/menu`); "📄 Menu (PDF)" opens a printable menu generated on the fly, no PDF library involved.
-- Header stats: to order, ordered, delivered, people, open requests. "Hide delivered" filter. "New round" clears the board (orders and requests).
-- A few easter eggs are hidden on the board. Try the Konami code, order 42 of something, click the 🍻 five times…
+See [APP_GUIDE.md](APP_GUIDE.md) for the full explanation of context modes, the round workflow and the code layout.
 
-## API
+## Scripts
 
-| Method | Path               | Body                                                     |
-|--------|--------------------|----------------------------------------------------------|
-| GET    | `/api/state`       | –                                                        |
-| POST   | `/api/orders`      | `{ name, item, qty, note }`                              |
-| PATCH  | `/api/orders/:id`  | `{ qty?, delivered?, deliverDelta?, done?, note?, … }`   |
-| DELETE | `/api/orders/:id`  | –                                                        |
-| DELETE | `/api/orders`      | clears everything (orders and requests)                  |
-| POST   | `/api/requests`    | `{ name, text }` (text max 300 chars)                    |
-| PATCH  | `/api/requests/:id`| `{ done: true\|false, text? }`                            |
-| DELETE | `/api/requests/:id`| –                                                        |
-| GET    | `/api/menu`        | – → `{ currency, menu: [{ category, items: [{ name, price }] }] }` |
-| GET    | `/api/menu.pdf`    | – → the menu as a PDF (`application/pdf`, inline)        |
+| Command | What it does |
+|---|---|
+| `npm run dev` | API server with restart-on-change (port 3210) + Vite dev server with HMR (port 5173) |
+| `npm run typecheck` | Strict TypeScript check for server and client |
+| `npm run build && npm start` | Build the UI and serve everything from one port |
 
-`GET /api/state` returns `{ orders, requests, serverTime }`. State is persisted to `data/orders.json`
-(files written before requests existed are loaded as-is; `requests` defaults to `[]`).
+## Layout
+
+```
+workspace/
+  global/                 instructions, methodology, examples — preloaded everywhere
+  projects/<game>/
+    project.json          name, description, default context selection
+    context/              original/, translation/, glossary, changelog, buglist, …
+    output/               deliverables written by the agent
+    sessions/<id>/        transcript + per-session context selection (git-ignored)
+server/                   Express API + Claude Agent SDK runner
+client/                   React UI
+shared/                   types used by both
+```
