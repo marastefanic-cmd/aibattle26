@@ -24,7 +24,8 @@ interface Term {
 interface SpawnRequest {
   id: string;
   file: string;
-  args: string[];
+  /** Array normally; on Windows a single string is passed to cmd.exe verbatim. */
+  args: string[] | string;
   cwd: string;
   env: Record<string, string>;
   cols?: number;

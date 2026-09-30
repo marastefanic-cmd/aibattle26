@@ -22,7 +22,7 @@ export interface Shell {
   go: (v: View) => void;
   report: (e: unknown) => void;
   refreshProjects: () => Promise<Project[]>;
-  refreshHealth: () => Promise<void>;
+  refreshHealth: () => Promise<boolean>;
   openSession: (owner: string, kind: SessionKind) => Promise<void>;
 }
 
@@ -45,9 +45,10 @@ export function App() {
 
   const report = useCallback((err: unknown) => setError(err instanceof Error ? err.message : String(err)), []);
 
+  /** Health is polled, not reported as an error: the API server may still be starting or restarting. */
   const refreshHealth = useCallback(async () => {
-    try { setHealth(await api.health()); } catch (e) { report(e); }
-  }, [report]);
+    try { setHealth(await api.health()); return true; } catch { return false; }
+  }, []);
 
   const refreshProjects = useCallback(async () => {
     const list = await api.listProjects();
@@ -56,8 +57,16 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    void refreshHealth();
-    refreshProjects().catch(report);
+    let stop = false;
+    let loadedProjects = false;
+    const tick = async () => {
+      if (stop) return;
+      const ok = await refreshHealth();
+      if (ok && !loadedProjects) { loadedProjects = true; refreshProjects().catch(report); }
+      setTimeout(tick, ok ? 30_000 : 2_000);
+    };
+    void tick();
+    return () => { stop = true; };
   }, [refreshHealth, refreshProjects, report]);
 
   useEffect(() => {

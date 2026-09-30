@@ -6,6 +6,23 @@ import { APP_DIR, HttpError } from './paths.js';
 
 const WIN = process.platform === 'win32';
 
+/**
+ * Finds the Claude Code executable. Preferred: the native binary from the platform package
+ * that @anthropic-ai/claude-code installs (no shell shim involved, so paths with spaces are
+ * fine). Fallbacks: the package's own bin, this app's node_modules/.bin, then PATH.
+ */
+function findClaude(): string | undefined {
+  const exe = WIN ? 'claude.exe' : 'claude';
+  const platform = `${process.platform}-${process.arch}`;
+  const candidates = [
+    path.join(APP_DIR, 'node_modules', '@anthropic-ai', `claude-code-${platform}`, exe),
+    path.join(APP_DIR, 'node_modules', '@anthropic-ai', `claude-code-${platform}-musl`, exe),
+    path.join(APP_DIR, 'node_modules', '@anthropic-ai', 'claude-code', 'bin', exe),
+  ];
+  for (const c of candidates) if (fs.existsSync(c)) return c;
+  return findExecutable('claude');
+}
+
 /** Finds an executable: first in this app's node_modules/.bin, then on PATH. */
 function findExecutable(name: string): string | undefined {
   const local = path.join(APP_DIR, 'node_modules', '.bin', WIN ? `${name}.cmd` : name);
@@ -19,7 +36,7 @@ function findExecutable(name: string): string | undefined {
 }
 
 export function agentInfos(settings: Settings): AgentInfo[] {
-  const claude = findExecutable('claude');
+  const claude = findClaude();
   const codex = findExecutable('codex');
   return [
     {
@@ -39,7 +56,8 @@ export function agentInfos(settings: Settings): AgentInfo[] {
 
 export interface Launch {
   file: string;
-  args: string[];
+  /** An array normally; a single pre-quoted command line when going through cmd.exe on Windows. */
+  args: string[] | string;
   cwd: string;
   env: Record<string, string>;
 }
@@ -77,16 +95,24 @@ export function buildLaunch(session: Session, contextFile: string, settings: Set
         .replaceAll('{cwd}', quote(APP_DIR))
         .replaceAll('{prompt}', quote(readFirst));
       return WIN
-        ? { file: 'cmd.exe', args: ['/d', '/s', '/c', cmd], cwd: APP_DIR, env }
+        ? viaCmd(cmd, env)
         : { file: '/bin/sh', args: ['-c', cmd], cwd: APP_DIR, env };
     }
   }
 }
 
 function wrap(file: string, args: string[], env: Record<string, string>): Launch {
-  // .cmd shims on Windows must go through cmd.exe.
-  if (WIN && /\.(cmd|bat)$/i.test(file)) return { file: 'cmd.exe', args: ['/d', '/s', '/c', file, ...args], cwd: APP_DIR, env };
+  // .cmd/.bat shims on Windows must go through cmd.exe, as one quoted command line.
+  if (WIN && /\.(cmd|bat)$/i.test(file)) return viaCmd([file, ...args].map(quote).join(' '), env);
   return { file, args, cwd: APP_DIR, env };
+}
+
+/**
+ * cmd.exe /s /c strips the first and last quote of the command line, so the whole
+ * command is wrapped in one extra pair; inner quotes then survive intact.
+ */
+function viaCmd(commandLine: string, env: Record<string, string>): Launch {
+  return { file: 'cmd.exe', args: `/d /s /c "${commandLine}"`, cwd: APP_DIR, env };
 }
 
 function quote(s: string): string {
