@@ -5,7 +5,8 @@ import path from 'node:path';
 import type { HealthInfo, Scope, SessionKind } from '../shared/types.js';
 import { agentInfos, buildLaunch } from './agents.js';
 import { buildContext } from './context.js';
-import { APP_DIR, HttpError, WORKSPACE_DIR } from './paths.js';
+import { spawn } from 'node:child_process';
+import { APP_DIR, HttpError, RUN_DIR, WORKSPACE_DIR } from './paths.js';
 import * as store from './store.js';
 import { terminals } from './terminals.js';
 
@@ -147,6 +148,31 @@ api.post('/sessions/:owner/:sid/stop', wrap(async (req) => { await terminals.kil
 
 /** The generated context, for the curious. */
 api.get('/sessions/:owner/:sid/context', wrap(async (req) => ({ text: await buildContext(await store.getSession(req.params.owner, req.params.sid)) })));
+
+/** Quit: stop every process the launcher started (terminal host, API, UI server). */
+api.post('/quit', wrap(async (_req, res) => {
+  res.json({ ok: true });
+  const pidsFile = path.join(RUN_DIR, 'pids.json');
+  let pids: number[] = [];
+  try {
+    const data = JSON.parse(fs.readFileSync(pidsFile, 'utf8')) as Record<string, unknown>;
+    pids = Object.values(data).filter((v): v is number => typeof v === 'number');
+    fs.unlinkSync(pidsFile);
+  } catch { /* not started via the launcher */ }
+  const signalAll = (signal: NodeJS.Signals) => {
+    for (const pid of pids) {
+      try {
+        if (process.platform === 'win32') spawn('taskkill', ['/pid', String(pid), '/t', '/f'], { stdio: 'ignore', windowsHide: true });
+        else process.kill(-pid, signal); // the launcher starts each one as its own process group
+      } catch { /* already gone */ }
+    }
+  };
+  setTimeout(() => {
+    signalAll('SIGTERM');
+    // The Vite dev server ignores SIGTERM when detached; make sure nothing lingers.
+    setTimeout(() => { signalAll('SIGKILL'); process.exit(0); }, 1500);
+  }, 300);
+}));
 
 // ---------- app guide (shown in the UI's help panel) ----------
 api.get('/app-guide', wrap(() => ({ text: fs.readFileSync(path.join(APP_DIR, 'APP_GUIDE.md'), 'utf8') })));

@@ -20,8 +20,9 @@ already knows your instructions and the game's files. Signing in happens inside 
 
 ## Install
 
-See [SETUP.md](SETUP.md). Short version: install Node.js, double-click `start.command` (Mac) or
-`start.bat` (Windows), type `/login` in the first session.
+See [SETUP.md](SETUP.md). Short version: install Node.js, double-click `Rulebook Studio.vbs`
+(Windows, which also puts a shortcut on the desktop) or `start.command` (Mac), sign in inside the
+first session. The app runs in the background and opens in its own window; Quit is in the menu.
 
 ## For developers
 

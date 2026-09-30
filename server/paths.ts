@@ -12,6 +12,8 @@ export const PROJECTS_DIR = path.join(WORKSPACE_DIR, 'projects');
 /** Sessions that don't belong to a game (instruction edits, app changes). */
 export const SYSTEM_SESSIONS_DIR = path.join(WORKSPACE_DIR, '_sessions');
 export const SETTINGS_FILE = path.join(WORKSPACE_DIR, 'settings.json');
+/** Runtime state written by scripts/launch.mjs (pids, logs, browser profile). Git-ignored. */
+export const RUN_DIR = path.join(APP_DIR, '.run');
 
 export const API_PORT = Number(process.env.PORT ?? 3210);
 /** The terminal host is a separate process so assistant sessions survive API restarts. */

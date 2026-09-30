@@ -1,8 +1,9 @@
 node_modules/
 dist/
 .env
-# Personal working data: session transcripts and saved credentials.
+# Runtime state written by the launcher (pids, logs, browser profile).
+.run/
+# Personal working data: session metadata.
 workspace/projects/*/sessions/
 workspace/_sessions/
-workspace/.local/
 .DS_Store

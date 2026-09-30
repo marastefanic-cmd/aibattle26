@@ -29,6 +29,7 @@ export const api = {
   health: () => request<HealthInfo>('/api/health'),
   appGuide: () => request<{ text: string }>('/api/app-guide'),
   updateSettings: (patch: Partial<Settings>) => request<Settings>('/api/settings', json('PUT', patch)),
+  quit: () => request('/api/quit', json('POST')),
 
   // files
   listFiles: (scope: Scope, projectId?: string) => request<ContextFile[]>(`/api/files/${scope}${q(scope, projectId)}`),

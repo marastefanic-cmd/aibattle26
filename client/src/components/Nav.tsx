@@ -9,9 +9,10 @@ interface Props {
   onGo: (v: View) => void;
   onNewGame: (name: string) => void;
   onHelp: () => void;
+  onQuit: () => void;
 }
 
-export function Nav({ projects, view, health, onGo, onNewGame, onHelp }: Props) {
+export function Nav({ projects, view, health, onGo, onNewGame, onHelp, onQuit }: Props) {
   const [newGame, setNewGame] = useState<string | null>(null);
   const activeGame = view.type === 'game' ? view.id : view.type === 'session' && !view.owner.startsWith('_') ? view.owner : null;
   const activeTop = view.type === 'session' ? (view.owner === '_global' ? 'instructions' : view.owner === '_app' ? 'app' : null) : view.type;
@@ -78,6 +79,7 @@ export function Nav({ projects, view, health, onGo, onNewGame, onHelp }: Props) 
             : agent?.available
               ? <span className="grow ellipsis" title={agent.path}>{agent.label} ready</span>
               : <button className="btn small primary grow" onClick={() => onGo({ type: 'app' })}>Choose an assistant</button>}
+        <button className="btn small ghost" title="Stop the app completely (it keeps running in the background when you just close the window)" onClick={onQuit}>Quit</button>
       </div>
     </aside>
   );

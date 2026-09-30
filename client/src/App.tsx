@@ -41,7 +41,14 @@ export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [view, setView] = useState<View>(loadView);
   const [showHelp, setShowHelp] = useState(false);
+  const [quitting, setQuitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const quit = async () => {
+    if (!confirm('Stop Rulebook Studio? Running assistant sessions will be ended (their conversations are kept).')) return;
+    try { await api.quit(); } catch { /* the server is going away anyway */ }
+    setQuitting(true);
+  };
 
   const report = useCallback((err: unknown) => setError(err instanceof Error ? err.message : String(err)), []);
 
@@ -125,8 +132,19 @@ export function App() {
           try { const p = await api.createProject(name); await refreshProjects(); go({ type: 'game', id: p.id }); } catch (e) { report(e); }
         }}
         onHelp={() => setShowHelp(true)}
+        onQuit={quit}
       />
       <main className="main">
+        {quitting && (
+          <div className="modal-backdrop">
+            <div className="modal wizard">
+              <div className="modal-head"><span>Rulebook Studio is closed</span></div>
+              <div className="modal-body">
+                <p>Everything is saved. You can close this window now. Double-click the Rulebook Studio icon to start it again.</p>
+              </div>
+            </div>
+          </div>
+        )}
         {error && (
           <div className="banner error row">
             <span className="grow">{error}</span>
