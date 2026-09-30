@@ -2,10 +2,10 @@
 
 export type Scope = 'global' | 'project';
 
-/** How a context file is handed to the agent at session start. */
+/** How a context file is handed to the AI at session start. */
 export type FileMode =
   | 'inline' // full content is placed in the system prompt
-  | 'reference' // only the path is listed; the agent reads it on demand
+  | 'reference' // only the path is listed; the AI reads it on demand
   | 'off'; // not mentioned at all
 
 export type FileKind = 'text' | 'binary';
@@ -34,9 +34,20 @@ export interface Project {
   model?: string;
 }
 
+/**
+ * What a session is for:
+ * - work: a review round inside a game (owner = project id)
+ * - instructions: the AI edits persistent instructions (owner = GLOBAL_OWNER or a project id)
+ * - app: the AI modifies this app's own source code (owner = APP_OWNER)
+ */
+export type SessionKind = 'work' | 'instructions' | 'app';
+export const GLOBAL_OWNER = '_global';
+export const APP_OWNER = '_app';
+
 export interface Session {
   id: string;
-  projectId: string;
+  owner: string;
+  kind: SessionKind;
   title: string;
   createdAt: string;
   updatedAt: string;
@@ -84,13 +95,18 @@ export type ServerEvent =
   | { type: 'status'; text: string }
   | { type: 'error'; text: string };
 
+export interface AuthStatus {
+  connected: boolean;
+  method: 'api_key' | 'claude_login' | 'none';
+  detail?: string;
+}
+
 export interface HealthInfo {
   ok: boolean;
-  /** Where credentials come from: a .env/environment variable, or whatever the Claude Code CLI login provides. */
-  auth: 'api_key' | 'oauth_token' | 'cli_login';
   workspaceDir: string;
   appDir: string;
   models: string[];
+  auth: AuthStatus;
 }
 
 export const MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-fable-5-1'];
@@ -101,8 +117,16 @@ export const TEXT_EXTENSIONS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.css', '.srt', '.po', '.ini', '.toml', '.tex', '.rtf',
 ]);
 
+/** Office formats that are converted to text on upload; the original is kept but not handed to the AI. */
+export const CONVERTED_EXTENSIONS = new Set(['.docx', '.xlsx', '.xls', '.xlsm']);
+
 export function fileKey(scope: Scope, path: string): string {
   return `${scope}:${path}`;
+}
+
+export function extOf(path: string): string {
+  const i = path.lastIndexOf('.');
+  return i === -1 ? '' : path.slice(i).toLowerCase();
 }
 
 export function estimateTokens(chars: number): number {
@@ -111,6 +135,7 @@ export function estimateTokens(chars: number): number {
 
 /** Built-in default mode for a file that has no explicit selection. */
 export function defaultMode(file: ContextFile): FileMode {
+  if (CONVERTED_EXTENSIONS.has(extOf(file.path))) return 'off';
   if (file.kind === 'binary') return 'reference';
   if (file.scope === 'project' && file.path.startsWith('output/')) return 'reference';
   if (file.tokens > 40_000) return 'reference';

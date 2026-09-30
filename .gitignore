@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .env
-# Session transcripts are personal working data; global docs and project context are kept.
+# Personal working data: session transcripts and saved credentials.
 workspace/projects/*/sessions/
+workspace/_sessions/
+workspace/.local/
 .DS_Store

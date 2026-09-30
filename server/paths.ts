@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,15 +10,36 @@ export const WORKSPACE_DIR = process.env.WORKSPACE_DIR
   : path.join(APP_DIR, 'workspace');
 export const GLOBAL_DIR = path.join(WORKSPACE_DIR, 'global');
 export const PROJECTS_DIR = path.join(WORKSPACE_DIR, 'projects');
+/** Sessions that don't belong to a game (instruction edits, app changes). */
+export const SYSTEM_SESSIONS_DIR = path.join(WORKSPACE_DIR, '_sessions');
+/** Machine-local, git-ignored state (saved credentials). */
+export const LOCAL_DIR = path.join(WORKSPACE_DIR, '.local');
 
 export function projectDir(projectId: string): string {
   return path.join(PROJECTS_DIR, safeSegment(projectId));
 }
-export function sessionsDir(projectId: string): string {
-  return path.join(projectDir(projectId), 'sessions');
+
+/** Where an owner's sessions live. Owners starting with "_" are system owners, not games. */
+export function sessionsDir(owner: string): string {
+  safeSegment(owner);
+  return owner.startsWith('_') ? path.join(SYSTEM_SESSIONS_DIR, owner) : path.join(projectDir(owner), 'sessions');
 }
-export function sessionDir(projectId: string, sessionId: string): string {
-  return path.join(sessionsDir(projectId), safeSegment(sessionId));
+export function sessionDir(owner: string, sessionId: string): string {
+  return path.join(sessionsDir(owner), safeSegment(sessionId));
+}
+
+/**
+ * The Claude Code binary bundled with the Agent SDK (installed as a platform-specific
+ * optional dependency). Falls back to a `claude` on PATH.
+ */
+export function claudeBinary(): string {
+  const platform = `${process.platform}-${process.arch}`;
+  const candidates = [
+    path.join(APP_DIR, 'node_modules', '@anthropic-ai', `claude-agent-sdk-${platform}`, process.platform === 'win32' ? 'claude.exe' : 'claude'),
+    path.join(APP_DIR, 'node_modules', '@anthropic-ai', `claude-agent-sdk-${platform}-musl`, 'claude'),
+  ];
+  for (const c of candidates) if (fs.existsSync(c)) return c;
+  return 'claude';
 }
 
 /** Reject path segments that could escape a directory. */

@@ -1,17 +1,16 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { APP_DIR, GLOBAL_DIR, HttpError, PROJECTS_DIR } from './paths.js';
-import { api } from './routes.js';
+import { APP_DIR, GLOBAL_DIR, HttpError, LOCAL_DIR, PROJECTS_DIR, SYSTEM_SESSIONS_DIR } from './paths.js';
 
-// Load .env (API key etc.) without an extra dependency.
+// Load .env (optional API key etc.) without an extra dependency, before anything reads process.env.
 const envFile = path.join(APP_DIR, '.env');
 if (fs.existsSync(envFile)) {
   try { process.loadEnvFile(envFile); } catch (err) { console.warn('Could not load .env:', err); }
 }
+const { api } = await import('./routes.js');
 
-fs.mkdirSync(GLOBAL_DIR, { recursive: true });
-fs.mkdirSync(PROJECTS_DIR, { recursive: true });
+for (const dir of [GLOBAL_DIR, PROJECTS_DIR, SYSTEM_SESSIONS_DIR, LOCAL_DIR]) fs.mkdirSync(dir, { recursive: true });
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));

@@ -3,21 +3,23 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Block, ChatMessage } from '../../../shared/types';
 
-/** Short one-line description of a tool call for the collapsed card. */
-function summarize(name: string, input: unknown): string {
+/** Friendly verb + short argument for the collapsed tool card. */
+function describe(name: string, input: unknown): { verb: string; arg: string } {
   const i = (input ?? {}) as Record<string, unknown>;
   const s = (v: unknown) => (typeof v === 'string' ? v : '');
+  const file = (p: string) => p.split('/').slice(-2).join('/');
   switch (name) {
-    case 'Read': case 'Write': case 'Edit': case 'MultiEdit': case 'NotebookEdit': return s(i.file_path);
-    case 'Bash': return s(i.command);
-    case 'Glob': return `${s(i.pattern)} ${s(i.path)}`.trim();
-    case 'Grep': return `/${s(i.pattern)}/ ${s(i.path)}`.trim();
-    case 'WebFetch': return s(i.url);
-    case 'WebSearch': return s(i.query);
-    case 'Agent': case 'Task': return s(i.description);
+    case 'Read': return { verb: 'Read', arg: file(s(i.file_path)) };
+    case 'Write': return { verb: 'Wrote', arg: file(s(i.file_path)) };
+    case 'Edit': case 'MultiEdit': case 'NotebookEdit': return { verb: 'Edited', arg: file(s(i.file_path)) };
+    case 'Bash': return { verb: 'Ran', arg: s(i.description) || s(i.command) };
+    case 'Glob': case 'Grep': return { verb: 'Searched files', arg: `${s(i.pattern)} ${s(i.path)}`.trim() };
+    case 'WebFetch': return { verb: 'Opened web page', arg: s(i.url) };
+    case 'WebSearch': return { verb: 'Searched the web', arg: s(i.query) };
+    case 'Agent': case 'Task': return { verb: 'Delegated', arg: s(i.description) };
     default: {
       const json = JSON.stringify(i);
-      return json.length > 120 ? `${json.slice(0, 117)}…` : json;
+      return { verb: name, arg: json.length > 100 ? `${json.slice(0, 97)}…` : json };
     }
   }
 }
@@ -31,7 +33,6 @@ export function MessageView({ message }: { message: ChatMessage }) {
     return <div className="msg user"><div className="bubble">{text}</div></div>;
   }
 
-  // Pair tool results with their tool_use so they render inside one card.
   const results = new Map<string, ToolResult>();
   for (const b of message.blocks) if (b.type === 'tool_result') results.set(b.toolUseId, b);
 
@@ -48,7 +49,7 @@ export function MessageView({ message }: { message: ChatMessage }) {
     } else if (b.type === 'thinking') {
       rendered.push(
         <details key={idx} className="thinking">
-          <summary>Thinking{message.streaming && isLast ? '…' : ''}</summary>
+          <summary>{message.streaming && isLast ? 'Thinking…' : 'Thoughts'}</summary>
           <pre>{b.text}</pre>
         </details>,
       );
@@ -70,12 +71,13 @@ export function MessageView({ message }: { message: ChatMessage }) {
 
 function ToolCard({ use, result, pending }: { use: ToolUse; result?: ToolResult; pending?: boolean }) {
   const input = (use.input ?? {}) as Record<string, unknown>;
+  const { verb, arg } = describe(use.name, use.input);
   return (
     <details className={`tool${result?.isError ? ' error' : ''}`}>
       <summary>
         {pending ? <span className="spinner" /> : <span className="muted">{result?.isError ? '✕' : '✓'}</span>}
-        <span className="name">{use.name}</span>
-        <span className="arg" title={summarize(use.name, use.input)}>{summarize(use.name, use.input)}</span>
+        <span className="name">{verb}</span>
+        <span className="arg" title={arg}>{arg}</span>
       </summary>
       <div className="body">
         {use.name === 'Bash' && typeof input.command === 'string'
@@ -83,11 +85,11 @@ function ToolCard({ use, result, pending }: { use: ToolUse; result?: ToolResult;
           : use.name === 'Write' && typeof input.content === 'string'
             ? <><div className="muted tiny">{String(input.file_path)}</div><pre>{input.content}</pre></>
             : use.name === 'Edit' && typeof input.old_string === 'string'
-              ? <><div className="result-label">Replace</div><pre>{input.old_string}</pre><div className="result-label">With</div><pre>{String(input.new_string ?? '')}</pre></>
+              ? <><div className="result-label">Replaced</div><pre>{input.old_string}</pre><div className="result-label">With</div><pre>{String(input.new_string ?? '')}</pre></>
               : <pre>{JSON.stringify(input, null, 2)}</pre>}
         {result && (
           <>
-            <div className="result-label">{result.isError ? 'Error' : 'Result'}</div>
+            <div className="result-label">{result.isError ? 'Problem' : 'Result'}</div>
             <pre>{result.content || '(empty)'}</pre>
           </>
         )}

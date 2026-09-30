@@ -1,15 +1,17 @@
 {
   "name": "rulebook-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Context-managed AI sessions for boardgame rules translation",
+  "description": "A simple AI workbench for reviewing boardgame rulebook translations",
   "scripts": {
-    "dev": "concurrently -k -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
-    "dev:server": "tsx watch --clear-screen=false server/index.ts",
+    "start": "concurrently -k -n server,app -c blue,green \"npm:dev:server\" \"npm:start:client\"",
+    "dev": "concurrently -k -n server,app -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "node scripts/dev-server.mjs",
     "dev:client": "vite",
+    "start:client": "vite --open",
     "build": "vite build && tsc -p tsconfig.server.json",
-    "start": "NODE_ENV=production node dist/server/index.js",
+    "serve": "NODE_ENV=production node dist/server/index.js",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.json --noEmit"
   },
   "engines": {
@@ -18,11 +20,13 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.285",
     "express": "^5.2.1",
+    "mammoth": "^1.13.0",
     "multer": "^2.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

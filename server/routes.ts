@@ -2,8 +2,11 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import multer from 'multer';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileKey, MODELS, type ContextSelection, type HealthInfo, type Scope, type ServerEvent } from '../shared/types.js';
+import {
+  fileKey, MODELS, type ContextSelection, type HealthInfo, type Scope, type ServerEvent, type SessionKind,
+} from '../shared/types.js';
 import { agents } from './agent.js';
+import { auth } from './auth.js';
 import { buildContext } from './context.js';
 import { APP_DIR, HttpError, WORKSPACE_DIR } from './paths.js';
 import * as store from './store.js';
@@ -28,14 +31,25 @@ function scopeOf(req: Req): { scope: Scope; projectId?: string } {
   return { scope, projectId };
 }
 
-// ---------- health ----------
-api.get('/health', wrap((): HealthInfo => ({
+// ---------- health & auth ----------
+api.get('/health', wrap(async (): Promise<HealthInfo> => ({
   ok: true,
-  auth: process.env.ANTHROPIC_API_KEY ? 'api_key' : process.env.CLAUDE_CODE_OAUTH_TOKEN ? 'oauth_token' : 'cli_login',
   workspaceDir: WORKSPACE_DIR,
   appDir: APP_DIR,
   models: MODELS,
+  auth: await auth.status(),
 })));
+
+api.get('/auth/status', wrap(() => auth.status()));
+api.post('/auth/login/start', wrap((req) => auth.startLogin(req.body?.mode === 'console' ? 'console' : 'claudeai')));
+api.post('/auth/login/code', wrap((req) => {
+  const code = String(req.body?.code ?? '').trim();
+  if (!code) throw new HttpError(400, 'Paste the code first');
+  return auth.submitCode(code);
+}));
+api.post('/auth/login/cancel', wrap(() => { auth.cancelLogin(); }));
+api.post('/auth/api-key', wrap(async (req) => { auth.saveApiKey(String(req.body?.key ?? '')); return auth.status(); }));
+api.post('/auth/logout', wrap(async () => { await auth.logout(); return auth.status(); }));
 
 // ---------- files ----------
 api.get('/files/:scope', wrap((req) => {
@@ -66,7 +80,7 @@ api.post('/files/:scope/upload', upload.array('files', 50), wrap(async (req) => 
   for (const f of files) {
     // multer decodes filenames as latin1; recover UTF-8 names (diacritics).
     const name = Buffer.from(f.originalname, 'latin1').toString('utf8');
-    saved.push(await store.saveUpload(scope, dir, name, f.buffer, projectId));
+    saved.push(...(await store.saveUpload(scope, dir, name, f.buffer, projectId)));
   }
   return { saved };
 }));
@@ -83,7 +97,7 @@ api.delete('/files/:scope', wrap(async (req) => {
   await store.deleteFile(scope, String(req.query.path ?? ''), projectId);
 }));
 
-// ---------- projects ----------
+// ---------- projects (games) ----------
 api.get('/projects', wrap(() => store.listProjects()));
 api.post('/projects', wrap((req) => {
   const name = String(req.body?.name ?? '').trim();
@@ -103,48 +117,53 @@ api.get('/projects/:id/context-defaults', wrap(async (req) => {
   return effective;
 }));
 
-// ---------- sessions ----------
-api.get('/projects/:id/sessions', wrap((req) => store.listSessions(req.params.id)));
-api.post('/projects/:id/sessions', wrap((req) => store.createSession(req.params.id, req.body ?? {})));
+// ---------- sessions (owner = project id, or _global / _app) ----------
+const KINDS: SessionKind[] = ['work', 'instructions', 'app'];
 
-api.get('/projects/:id/sessions/:sid', wrap(async (req) => {
-  const { id, sid } = req.params;
-  const session = await store.getSession(id, sid);
-  const messages = await store.getMessages(id, sid);
+api.get('/sessions/:owner', wrap((req) => store.listSessions(req.params.owner)));
+api.post('/sessions/:owner', wrap((req) => {
+  const kind = req.body?.kind as SessionKind;
+  if (!KINDS.includes(kind)) throw new HttpError(400, 'kind must be work, instructions or app');
+  return store.createSession(req.params.owner, kind, req.body ?? {});
+}));
+
+api.get('/sessions/:owner/:sid', wrap(async (req) => {
+  const { owner, sid } = req.params;
+  const session = await store.getSession(owner, sid);
+  const messages = await store.getMessages(owner, sid);
   const current = agents.currentAssistant(sid);
   if (current) messages.push(current);
   return { session, messages, running: agents.isRunning(sid), pending: agents.pendingPermissions(sid) };
 }));
 
-api.patch('/projects/:id/sessions/:sid', wrap((req) => store.updateSession(req.params.id, req.params.sid, req.body)));
+api.patch('/sessions/:owner/:sid', wrap((req) => store.updateSession(req.params.owner, req.params.sid, req.body)));
 
-api.delete('/projects/:id/sessions/:sid', wrap(async (req) => {
+api.delete('/sessions/:owner/:sid', wrap(async (req) => {
   agents.abort(req.params.sid);
-  await store.deleteSession(req.params.id, req.params.sid);
+  await store.deleteSession(req.params.owner, req.params.sid);
 }));
 
-/** Preview of the system prompt the agent will receive, for the context panel. */
-api.get('/projects/:id/sessions/:sid/context', wrap(async (req) => {
-  const project = await store.getProject(req.params.id);
-  const session = await store.getSession(req.params.id, req.params.sid);
-  const ctx = await buildContext(project, session);
+/** Preview of the system prompt the AI will receive. */
+api.get('/sessions/:owner/:sid/context', wrap(async (req) => {
+  const session = await store.getSession(req.params.owner, req.params.sid);
+  const ctx = await buildContext(session);
   return { systemPrompt: ctx.systemPrompt, tokens: ctx.tokens, inline: ctx.inlineFiles.length, reference: ctx.referenceFiles.length };
 }));
 
-api.post('/projects/:id/sessions/:sid/messages', wrap(async (req) => {
+api.post('/sessions/:owner/:sid/messages', wrap(async (req) => {
   const text = String(req.body?.text ?? '').trim();
   if (!text) throw new HttpError(400, 'text required');
-  await agents.send(req.params.id, req.params.sid, text);
+  await agents.send(req.params.owner, req.params.sid, text);
 }));
 
-api.post('/projects/:id/sessions/:sid/abort', wrap((req) => { agents.abort(req.params.sid); }));
+api.post('/sessions/:owner/:sid/abort', wrap((req) => { agents.abort(req.params.sid); }));
 
-api.post('/projects/:id/sessions/:sid/permissions/:rid', wrap((req) => {
+api.post('/sessions/:owner/:sid/permissions/:rid', wrap((req) => {
   agents.resolvePermission(req.params.sid, req.params.rid, Boolean(req.body?.allow));
 }));
 
 /** Server-sent events for one session. */
-api.get('/projects/:id/sessions/:sid/events', (req: Req, res) => {
+api.get('/sessions/:owner/:sid/events', (req: Req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
@@ -157,6 +176,9 @@ api.get('/projects/:id/sessions/:sid/events', (req: Req, res) => {
   const ping = setInterval(() => res.write(': ping\n\n'), 20_000);
   req.on('close', () => { clearInterval(ping); unsubscribe(); });
 });
+
+/** Used by scripts/dev-server.mjs: exit (to be respawned) once no AI turn is running. */
+api.post('/_restart', wrap(() => ({ deferred: agents.restartWhenIdle() })));
 
 // ---------- app guide (shown in the UI's help panel) ----------
 api.get('/app-guide', wrap(() => ({ text: fs.readFileSync(path.join(APP_DIR, 'APP_GUIDE.md'), 'utf8') })));

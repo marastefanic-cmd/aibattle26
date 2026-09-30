@@ -29,6 +29,7 @@ Group findings by type, most severe first:
 - **Language** — spelling, grammar, typography (quotes, dashes, non-breaking spaces)
 - **Style** — awkward but correct; lowest priority, keep short
 
-For each finding: `page/section — "quoted passage" — problem — suggested fix`.
+For each finding: `page/section — „quoted passage“ — problem — suggested fix`.
+Always quote passages with Czech quotation marks „ “, never straight ones (see the methodology).
 
 Do not list things that are fine. Do not summarise the rules back to the user.

@@ -2,9 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { query, type Options, type PermissionResult, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { Block, ChatMessage, PermissionRequest, ServerEvent, Session } from '../shared/types.js';
+import { auth } from './auth.js';
 import { buildContext } from './context.js';
 import { APP_DIR, HttpError } from './paths.js';
-import { getMessages, getProject, getSession, saveMessages, updateSession } from './store.js';
+import { getMessages, getSession, saveMessages, updateSession } from './store.js';
 
 interface Pending {
   request: PermissionRequest;
@@ -12,20 +13,40 @@ interface Pending {
 }
 
 interface Run {
+  owner: string;
   sessionId: string;
   abort: AbortController;
   pending: Map<string, Pending>;
   assistant: ChatMessage;
 }
 
+/** Shell commands the AI may run without asking (safe, read-only checks of the app). */
+const PRE_APPROVED_COMMANDS = [/^npm run (typecheck|build)$/, /^npx tsc\b[^;&|]*$/];
+
 /**
- * Runs agent turns. One turn at a time per session. Every tool call that the
- * SDK does not auto-accept (Bash, writes outside the app directory, …) is
- * surfaced to the UI as a permission request that the user approves or denies.
+ * Runs AI turns. One turn at a time per session. Every tool call that the
+ * SDK does not auto-accept (shell commands, writes outside the app directory, …)
+ * is surfaced to the UI as a permission request that the user approves or denies.
  */
 class AgentManager {
   private emitters = new Map<string, EventEmitter>();
   private runs = new Map<string, Run>();
+  private exitWhenIdle = false;
+
+  /**
+   * The dev supervisor calls this when server code changed. Returns true if the
+   * restart is deferred until the running turn(s) finish.
+   */
+  restartWhenIdle(): boolean {
+    if (this.runs.size === 0) { setTimeout(() => process.exit(0), 50); return false; }
+    this.exitWhenIdle = true;
+    return true;
+  }
+
+  private turnFinished(sessionId: string): void {
+    this.runs.delete(sessionId);
+    if (this.exitWhenIdle && this.runs.size === 0) setTimeout(() => process.exit(0), 200);
+  }
 
   private emitter(sessionId: string): EventEmitter {
     let e = this.emitters.get(sessionId);
@@ -63,7 +84,7 @@ class AgentManager {
     run.pending.delete(requestId);
     p.resolve(allow
       ? { behavior: 'allow', updatedInput: p.request.input }
-      : { behavior: 'deny', message: 'The user denied this action.' });
+      : { behavior: 'deny', message: 'The user did not allow this action.' });
     this.emit(sessionId, { type: 'permission_resolved', requestId });
   }
 
@@ -78,43 +99,46 @@ class AgentManager {
     run.abort.abort();
   }
 
-  async send(projectId: string, sessionId: string, text: string): Promise<void> {
-    if (this.runs.has(sessionId)) throw new HttpError(409, 'A turn is already running in this session');
-    const project = await getProject(projectId);
-    let session = await getSession(projectId, sessionId);
-    const messages = await getMessages(projectId, sessionId);
+  async send(owner: string, sessionId: string, text: string): Promise<void> {
+    if (this.runs.has(sessionId)) throw new HttpError(409, 'The AI is still working on the previous message');
+    let session = await getSession(owner, sessionId);
+    const messages = await getMessages(owner, sessionId);
 
     const userMsg: ChatMessage = { id: randomUUID(), role: 'user', createdAt: new Date().toISOString(), blocks: [{ type: 'text', text }] };
     messages.push(userMsg);
     if (session.title === 'New session') {
-      session = await updateSession(projectId, sessionId, { title: text.replace(/\s+/g, ' ').trim().slice(0, 60) || 'New session' });
+      session = await updateSession(owner, sessionId, { title: text.replace(/\s+/g, ' ').trim().slice(0, 60) || 'New session' });
       this.emit(sessionId, { type: 'session', session });
     }
-    await saveMessages(projectId, sessionId, messages);
+    await saveMessages(owner, sessionId, messages);
     this.emit(sessionId, { type: 'message', message: userMsg });
 
     const assistant: ChatMessage = { id: randomUUID(), role: 'assistant', createdAt: new Date().toISOString(), blocks: [], streaming: true };
-    const run: Run = { sessionId, abort: new AbortController(), pending: new Map(), assistant };
+    const run: Run = { owner, sessionId, abort: new AbortController(), pending: new Map(), assistant };
     this.runs.set(sessionId, run);
     this.emit(sessionId, { type: 'message', message: assistant });
 
     // Run in the background; the HTTP request returns immediately.
-    void this.runTurn(project.id, session, run, text, messages).finally(() => this.runs.delete(sessionId));
+    void this.runTurn(session, run, text, messages).finally(() => this.turnFinished(sessionId));
   }
 
-  private async runTurn(projectId: string, session: Session, run: Run, prompt: string, messages: ChatMessage[]): Promise<void> {
-    const { sessionId, assistant } = run;
+  private async runTurn(session: Session, run: Run, prompt: string, messages: ChatMessage[]): Promise<void> {
+    const { owner, sessionId, assistant } = run;
     const emit = (ev: ServerEvent) => this.emit(sessionId, ev);
     const snapshot = () => emit({ type: 'message', message: assistant });
     let costUsd: number | undefined;
 
     try {
-      const project = await getProject(projectId);
-      const ctx = await buildContext(project, session);
-      emit({ type: 'status', text: `Context: ${ctx.inlineFiles.length} inlined, ${ctx.referenceFiles.length} referenced, ~${ctx.tokens.toLocaleString()} tokens` });
+      const ctx = await buildContext(session);
+      emit({ type: 'status', text: session.kind === 'work'
+        ? `Reading ${ctx.inlineFiles.length + ctx.referenceFiles.length} files…`
+        : 'Thinking…' });
 
-      const canUseTool: Options['canUseTool'] = (toolName, input, { signal }) =>
-        new Promise<PermissionResult>((resolve) => {
+      const canUseTool: Options['canUseTool'] = (toolName, input, { signal }) => {
+        if (toolName === 'Bash' && typeof input.command === 'string' && PRE_APPROVED_COMMANDS.some((re) => re.test(input.command as string))) {
+          return Promise.resolve({ behavior: 'allow', updatedInput: input });
+        }
+        return new Promise<PermissionResult>((resolve) => {
           const request: PermissionRequest = { id: randomUUID(), sessionId, toolName, input, createdAt: new Date().toISOString() };
           run.pending.set(request.id, { request, resolve });
           emit({ type: 'permission_request', request });
@@ -122,9 +146,11 @@ class AgentManager {
             if (run.pending.delete(request.id)) resolve({ behavior: 'deny', message: 'Cancelled.' });
           });
         });
+      };
 
       const options: Options = {
         cwd: APP_DIR,
+        env: { ...process.env, ...auth.sdkEnv() },
         model: session.model,
         effort: session.effort,
         thinking: { type: 'adaptive', display: 'summarized' },
@@ -141,12 +167,12 @@ class AgentManager {
 
       const q = query({ prompt, options });
       for await (const msg of q) {
-        await this.handleMessage(msg, run, projectId, session, snapshot, emit);
+        await this.handleMessage(msg, run, session, snapshot, emit);
         if (msg.type === 'result') costUsd = msg.total_cost_usd;
       }
     } catch (err) {
       if (run.abort.signal.aborted) {
-        assistant.error = 'Cancelled';
+        assistant.error = 'Stopped';
       } else {
         const text = err instanceof Error ? err.message : String(err);
         assistant.error = text;
@@ -157,9 +183,9 @@ class AgentManager {
     assistant.streaming = false;
     assistant.blocks = assistant.blocks.filter((b) => !(b.type === 'thinking' && !b.text.trim()));
     messages.push(assistant);
-    await saveMessages(projectId, sessionId, messages);
+    await saveMessages(owner, sessionId, messages);
     if (costUsd !== undefined) {
-      const s = await updateSession(projectId, sessionId, { totalCostUsd: costUsd });
+      const s = await updateSession(owner, sessionId, { totalCostUsd: costUsd });
       emit({ type: 'session', session: s });
     }
     snapshot();
@@ -167,15 +193,15 @@ class AgentManager {
   }
 
   private async handleMessage(
-    msg: SDKMessage, run: Run, projectId: string, session: Session,
+    msg: SDKMessage, run: Run, session: Session,
     snapshot: () => void, emit: (ev: ServerEvent) => void,
   ): Promise<void> {
-    const { assistant, sessionId } = run;
+    const { assistant, owner, sessionId } = run;
     switch (msg.type) {
       case 'system': {
         if (msg.subtype === 'init' && msg.session_id && msg.session_id !== session.sdkSessionId) {
           session.sdkSessionId = msg.session_id;
-          const s = await updateSession(projectId, sessionId, { sdkSessionId: msg.session_id });
+          const s = await updateSession(owner, sessionId, { sdkSessionId: msg.session_id });
           emit({ type: 'session', session: s });
         }
         return;
@@ -215,7 +241,7 @@ class AgentManager {
             else if (!assistant.blocks.some((x) => x.type === 'text' && x.text === b.text)) assistant.blocks.push({ type: 'text', text: b.text });
           }
         }
-        if (msg.error) assistant.error = msg.error;
+        if (msg.error) assistant.error = friendlyError(msg.error);
         snapshot();
         return;
       }
@@ -243,6 +269,16 @@ class AgentManager {
       default:
         return;
     }
+  }
+}
+
+function friendlyError(code: string): string {
+  switch (code) {
+    case 'authentication_failed': return 'Claude is not connected. Open "The app" and connect Claude again.';
+    case 'billing_error': return 'Claude refused because of a billing problem with the connected account.';
+    case 'rate_limit': return 'Claude is rate-limited right now. Wait a few minutes and try again.';
+    case 'overloaded': return 'Claude is overloaded right now. Try again in a moment.';
+    default: return code;
   }
 }
 

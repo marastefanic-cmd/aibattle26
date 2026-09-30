@@ -1,31 +1,57 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { ContextFile, HealthInfo, Project, Scope, Session } from '../../shared/types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { GLOBAL_OWNER, APP_OWNER, type HealthInfo, type Project, type Scope, type Session, type SessionKind } from '../../shared/types';
 import { api } from './api';
-import { Sidebar } from './components/Sidebar';
-import { ChatView } from './components/ChatView';
-import { ContextPanel } from './components/ContextPanel';
-import { FileEditor } from './components/FileEditor';
+import { Nav } from './components/Nav';
+import { SetupWizard } from './components/SetupWizard';
 import { HelpModal } from './components/HelpModal';
+import { FileEditor } from './components/FileEditor';
+import { InstructionsPage } from './pages/InstructionsPage';
+import { AppPage } from './pages/AppPage';
+import { GamePage } from './pages/GamePage';
+import { SessionPage } from './pages/SessionPage';
 
-export interface OpenFile { scope: Scope; path: string }
+export type View =
+  | { type: 'instructions' }
+  | { type: 'app' }
+  | { type: 'game'; id: string }
+  | { type: 'session'; owner: string; id: string }
+  | { type: 'file'; scope: Scope; path: string; projectId?: string; back: View };
+
+export interface Shell {
+  projects: Project[];
+  health: HealthInfo | null;
+  go: (v: View) => void;
+  report: (e: unknown) => void;
+  refreshProjects: () => Promise<Project[]>;
+  openSession: (owner: string, kind: SessionKind) => Promise<void>;
+  openSetup: () => void;
+  refreshHealth: () => Promise<void>;
+}
+
+const VIEW_KEY = 'view';
+
+function loadView(): View {
+  try {
+    const v = JSON.parse(localStorage.getItem(VIEW_KEY) ?? '') as View;
+    if (v && v.type !== 'file') return v;
+  } catch { /* first run */ }
+  return { type: 'instructions' };
+}
 
 export function App() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [projectId, setProjectId] = useState<string | null>(() => localStorage.getItem('projectId'));
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [globalFiles, setGlobalFiles] = useState<ContextFile[]>([]);
-  const [projectFiles, setProjectFiles] = useState<ContextFile[]>([]);
-  const [openFile, setOpenFile] = useState<OpenFile | null>(null);
+  const [view, setView] = useState<View>(loadView);
+  const [showSetup, setShowSetup] = useState(false);
+  const [setupDismissed, setSetupDismissed] = useState(() => localStorage.getItem('setupDismissed') === '1');
   const [showHelp, setShowHelp] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hideAuthHint, setHideAuthHint] = useState(() => localStorage.getItem('hideAuthHint') === '1');
 
-  const project = projects.find((p) => p.id === projectId) ?? null;
-  const session = sessions.find((s) => s.id === sessionId) ?? null;
+  const report = useCallback((err: unknown) => setError(err instanceof Error ? err.message : String(err)), []);
 
-  const report = (err: unknown) => setError(err instanceof Error ? err.message : String(err));
+  const refreshHealth = useCallback(async () => {
+    try { setHealth(await api.health()); } catch (e) { report(e); }
+  }, [report]);
 
   const refreshProjects = useCallback(async () => {
     const list = await api.listProjects();
@@ -33,161 +59,92 @@ export function App() {
     return list;
   }, []);
 
-  const refreshSessions = useCallback(async (pid: string) => {
-    const list = await api.listSessions(pid);
-    setSessions(list);
-    return list;
-  }, []);
-
-  const refreshFiles = useCallback(async (pid: string | null) => {
-    setGlobalFiles(await api.listFiles('global'));
-    setProjectFiles(pid ? await api.listFiles('project', pid) : []);
-  }, []);
-
-  // initial load
   useEffect(() => {
-    api.health().then(setHealth).catch(report);
-    refreshProjects().then((list) => {
-      if (list.length && !list.some((p) => p.id === projectId)) setProjectId(list[0].id);
-    }).catch(report);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // project changed
-  useEffect(() => {
-    if (projectId) localStorage.setItem('projectId', projectId);
-    setSessionId(null);
-    setOpenFile(null);
-    if (!projectId) { setSessions([]); return; }
-    refreshSessions(projectId).then((list) => {
-      const last = localStorage.getItem(`session:${projectId}`);
-      if (last && list.some((s) => s.id === last)) setSessionId(last);
-    }).catch(report);
-    refreshFiles(projectId).catch(report);
-  }, [projectId, refreshSessions, refreshFiles]);
+    void refreshHealth();
+    refreshProjects().catch(report);
+  }, [refreshHealth, refreshProjects, report]);
 
   useEffect(() => {
-    if (projectId && sessionId) localStorage.setItem(`session:${projectId}`, sessionId);
-  }, [projectId, sessionId]);
+    if (view.type !== 'file') localStorage.setItem(VIEW_KEY, JSON.stringify(view));
+  }, [view]);
 
-  // ---- actions ----
-  const createProject = async (name: string) => {
+  // If a game was deleted elsewhere, fall back.
+  useEffect(() => {
+    if (view.type === 'game' && projects.length && !projects.some((p) => p.id === view.id)) setView({ type: 'instructions' });
+  }, [projects, view]);
+
+  const go = useCallback((v: View) => { setView(v); window.scrollTo(0, 0); }, []);
+
+  const openSession = useCallback(async (owner: string, kind: SessionKind) => {
     try {
-      const p = await api.createProject(name);
-      await refreshProjects();
-      setProjectId(p.id);
+      const s: Session = await api.createSession(owner, kind);
+      go({ type: 'session', owner, id: s.id });
     } catch (e) { report(e); }
-  };
+  }, [go, report]);
 
-  const deleteProject = async (id: string) => {
-    if (!confirm('Delete this project, its files and all its sessions? This cannot be undone.')) return;
-    try {
-      await api.deleteProject(id);
-      const list = await refreshProjects();
-      setProjectId(list[0]?.id ?? null);
-    } catch (e) { report(e); }
-  };
+  const openSetup = useCallback(() => setShowSetup(true), []);
+  const shell: Shell = useMemo(() => ({
+    projects, health, go, report, refreshProjects, openSession, openSetup, refreshHealth,
+  }), [projects, health, go, report, refreshProjects, openSession, openSetup, refreshHealth]);
 
-  const createSession = async () => {
-    if (!projectId) return;
-    try {
-      const s = await api.createSession(projectId);
-      await refreshSessions(projectId);
-      setSessionId(s.id);
-      setOpenFile(null);
-    } catch (e) { report(e); }
-  };
+  const needsSetup = health !== null && !health.auth.connected && !setupDismissed;
 
-  const deleteSession = async (id: string) => {
-    if (!projectId) return;
-    if (!confirm('Delete this session?')) return;
-    try {
-      await api.deleteSession(projectId, id);
-      const list = await refreshSessions(projectId);
-      if (sessionId === id) setSessionId(list[0]?.id ?? null);
-    } catch (e) { report(e); }
-  };
-
-  const updateSession = (s: Session) => setSessions((prev) => prev.map((x) => (x.id === s.id ? s : x)));
-  const updateProject = (p: Project) => setProjects((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+  let page;
+  switch (view.type) {
+    case 'instructions': page = <InstructionsPage shell={shell} />; break;
+    case 'app': page = <AppPage shell={shell} onHelp={() => setShowHelp(true)} />; break;
+    case 'game': {
+      const project = projects.find((p) => p.id === view.id);
+      page = project ? <GamePage key={project.id} shell={shell} project={project} /> : <div className="page"><p className="muted">Loading…</p></div>;
+      break;
+    }
+    case 'session': page = <SessionPage key={view.id} shell={shell} owner={view.owner} sessionId={view.id} />; break;
+    case 'file':
+      page = (
+        <FileEditor
+          key={`${view.scope}:${view.path}`}
+          file={{ scope: view.scope, path: view.path }}
+          projectId={view.projectId}
+          onClose={() => go(view.back)}
+          onError={report}
+        />
+      );
+      break;
+  }
 
   return (
-    <div className={`app${project ? '' : ' no-right'}`}>
-      <Sidebar
+    <div className="app">
+      <Nav
         projects={projects}
-        projectId={projectId}
-        sessions={sessions}
-        sessionId={sessionId}
+        view={view}
         health={health}
-        onSelectProject={setProjectId}
-        onCreateProject={createProject}
-        onDeleteProject={deleteProject}
-        onSelectSession={(id) => { setSessionId(id); setOpenFile(null); }}
-        onCreateSession={createSession}
-        onDeleteSession={deleteSession}
+        onGo={go}
+        onNewGame={async (name) => {
+          try { const p = await api.createProject(name); await refreshProjects(); go({ type: 'game', id: p.id }); } catch (e) { report(e); }
+        }}
+        onConnect={() => setShowSetup(true)}
         onHelp={() => setShowHelp(true)}
       />
-
-      <div className="main">
+      <main className="main">
         {error && (
           <div className="banner error row">
             <span className="grow">{error}</span>
             <button className="icon-btn" onClick={() => setError(null)}>✕</button>
           </div>
         )}
-        {health && health.auth === 'cli_login' && !hideAuthHint && (
-          <div className="banner row">
-            <span className="grow">
-              No API key in <code>.env</code>. The agent will use your Claude Code login (<code>claude login</code>) if you have one; otherwise set <code>ANTHROPIC_API_KEY</code> in <code>.env</code> and restart.
-            </span>
-            <button className="icon-btn" onClick={() => { setHideAuthHint(true); localStorage.setItem('hideAuthHint', '1'); }}>✕</button>
-          </div>
-        )}
-        {openFile ? (
-          <FileEditor
-            key={`${openFile.scope}:${openFile.path}`}
-            file={openFile}
-            projectId={projectId ?? undefined}
-            onClose={() => setOpenFile(null)}
-            onSaved={() => refreshFiles(projectId).catch(report)}
-            onError={report}
-          />
-        ) : project && session ? (
-          <ChatView
-            key={session.id}
-            project={project}
-            session={session}
-            models={health?.models ?? []}
-            onSessionChange={updateSession}
-            onError={report}
-            onFilesChanged={() => refreshFiles(projectId).catch(report)}
-          />
-        ) : (
-          <div className="empty">
-            <div>
-              <h2>{project ? 'No session selected' : 'No project yet'}</h2>
-              {project
-                ? <>Start a new session on the left. It comes preloaded with the global docs and this project's files as configured in the Context panel.</>
-                : <>Create a project for the boardgame you are working on. Global instructions and methodology live in the Context panel and apply to every project.</>}
-            </div>
-          </div>
-        )}
-      </div>
+        {page}
+      </main>
 
-      {project && (
-        <ContextPanel
-          project={project}
-          session={session}
-          globalFiles={globalFiles}
-          projectFiles={projectFiles}
-          onOpenFile={setOpenFile}
-          onRefresh={() => refreshFiles(projectId).catch(report)}
-          onSessionChange={updateSession}
-          onProjectChange={updateProject}
-          onError={report}
+      {(showSetup || needsSetup) && (
+        <SetupWizard
+          auth={health?.auth ?? null}
+          onDone={async () => { setShowSetup(false); await refreshHealth(); }}
+          onSkip={() => { setShowSetup(false); setSetupDismissed(true); localStorage.setItem('setupDismissed', '1'); }}
         />
       )}
-
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
+
+export const OWNERS = { global: GLOBAL_OWNER, app: APP_OWNER };

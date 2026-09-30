@@ -1,51 +1,41 @@
 # Rulebook Studio
 
-Context-managed AI sessions for reviewing boardgame rulebook translations.
+A simple, local AI workbench for reviewing boardgame rulebook translations, built for a
+translator who does not want to know how AI tools work.
 
-You keep **global** instructions, methodology and example files in one place, put each game's
-original rules, translation, glossary, changelog and buglist in a **project**, and then start
-disposable **sessions** whose agent is preloaded with exactly the files you pick. Each session
-does one review round (spellcheck, terminology consistency, formatting conventions, comparison
-against the original…), records what it found, and can be thrown away.
+Three parts, three colours:
 
-Built on the [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk), so the agent can read
-PDFs, edit files, and even modify this app (it hot-reloads).
+- **★ Persistent instructions** — standing rules the AI reads before every session, in every game.
+  You never edit files: press **＋ Tell the AI what to change** and describe the rule.
+- **🎲 Games** — one folder per game with its original rules, translation, glossary, changelog and
+  buglist, plus game-specific instructions. Press **＋ New session** and tell the AI what to check
+  (spelling, terminology consistency, bold/italic conventions, comparison with the original…).
+- **⚙ The app** — the Claude connection, and **＋ Ask for a change in the app**: describe a change
+  and the AI edits the app's own code. It hot-reloads, so the change is live in seconds.
 
-## Quick start
+Claude is connected once through a guided sign-in (Claude subscription or API key) and stays connected.
+
+## Install
+
+See [SETUP.md](SETUP.md). Short version: install Node.js, double-click `start.command` (Mac) or
+`start.bat` (Windows), connect Claude when asked.
+
+## For developers
 
 ```bash
-cp .env.example .env    # set ANTHROPIC_API_KEY, or CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token`
 npm install
-npm run dev             # http://localhost:5173
+npm run dev          # API on :3210 (restarts on change), UI on http://localhost:5173 (HMR)
+npm run typecheck    # strict TypeScript for server and client
 ```
 
-Then:
-
-1. Edit the starter docs under **Global** in the Context panel (instructions, methodology, example).
-2. Create a project, upload the original rules and the translation, fill in the glossary.
-3. Start a session and tell it what to check.
-
-See [APP_GUIDE.md](APP_GUIDE.md) for the full explanation of context modes, the round workflow and the code layout.
-
-## Scripts
-
-| Command | What it does |
-|---|---|
-| `npm run dev` | API server with restart-on-change (port 3210) + Vite dev server with HMR (port 5173) |
-| `npm run typecheck` | Strict TypeScript check for server and client |
-| `npm run build && npm start` | Build the UI and serve everything from one port |
-
-## Layout
+Built on the [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk): every session is an
+agent with file tools, a system prompt assembled from the selected files, and a permission prompt
+in the UI for anything beyond editing files inside this folder. [APP_GUIDE.md](APP_GUIDE.md)
+describes the code layout and is also what the AI reads before modifying the app.
 
 ```
-workspace/
-  global/                 instructions, methodology, examples — preloaded everywhere
-  projects/<game>/
-    project.json          name, description, default context selection
-    context/              original/, translation/, glossary, changelog, buglist, …
-    output/               deliverables written by the agent
-    sessions/<id>/        transcript + per-session context selection (git-ignored)
-server/                   Express API + Claude Agent SDK runner
-client/                   React UI
-shared/                   types used by both
+server/     Express API: auth flow, files/projects/sessions on disk, context builder, agent runner, SSE
+client/     React UI: nav, setup wizard, the three section pages, chat
+shared/     types used by both
+workspace/  the user's data (see SETUP.md)
 ```

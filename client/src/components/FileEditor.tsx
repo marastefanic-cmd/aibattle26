@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
+import type { Scope } from '../../../shared/types';
 import { api } from '../api';
-import type { OpenFile } from '../App';
 
 interface Props {
-  file: OpenFile;
+  file: { scope: Scope; path: string };
   projectId?: string;
   onClose: () => void;
-  onSaved: () => void;
   onError: (e: unknown) => void;
 }
 
-export function FileEditor({ file, projectId, onClose, onSaved, onError }: Props) {
+/** Plain text editor for instruction files and documents. Normal users rarely need it. */
+export function FileEditor({ file, projectId, onClose, onError }: Props) {
   const [text, setText] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -25,11 +25,8 @@ export function FileEditor({ file, projectId, onClose, onSaved, onError }: Props
   const save = async () => {
     if (text === null) return;
     setBusy(true);
-    try {
-      await api.writeFile(file.scope, file.path, text, projectId);
-      setSaved(text);
-      onSaved();
-    } catch (e) { onError(e); } finally { setBusy(false); }
+    try { await api.writeFile(file.scope, file.path, text, projectId); setSaved(text); }
+    catch (e) { onError(e); } finally { setBusy(false); }
   };
 
   const close = () => {
@@ -41,9 +38,7 @@ export function FileEditor({ file, projectId, onClose, onSaved, onError }: Props
     <div className="editor">
       <div className="toolbar">
         <button className="btn small" onClick={close}>← Back</button>
-        <span className="path" title={file.path}>
-          <span className="muted">{file.scope === 'global' ? 'global/' : 'project/'}</span>{file.path}
-        </span>
+        <span className="path" title={file.path}>{file.path.split('/').pop()}</span>
         {dirty && <span className="tiny muted">unsaved</span>}
         <button className="btn primary small" disabled={!dirty || busy} onClick={save}>Save</button>
       </div>

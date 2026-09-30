@@ -2,12 +2,15 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
-  type ChatMessage, type ContextFile, type ContextSelection, type Project,
-  type Scope, type Session, DEFAULT_MODEL, TEXT_EXTENSIONS, effectiveMode, estimateTokens, fileKey,
+  type ChatMessage, type ContextFile, type ContextSelection, type Project, type Scope, type Session, type SessionKind,
+  DEFAULT_MODEL, TEXT_EXTENSIONS, effectiveMode, estimateTokens, fileKey,
 } from '../shared/types.js';
+import { convertUpload } from './convert.js';
 import {
   GLOBAL_DIR, PROJECTS_DIR, HttpError, projectDir, safeJoin, safeSegment, sessionDir, sessionsDir, slugify,
 } from './paths.js';
+
+export { effectiveMode };
 
 // ---------- helpers ----------
 
@@ -30,7 +33,7 @@ export function isTextFile(filePath: string): boolean {
   return TEXT_EXTENSIONS.has(path.extname(filePath).toLowerCase());
 }
 
-/** Directories inside a project that are not context material. */
+/** Entries inside a project dir that are not context material. */
 const PROJECT_SKIP = new Set(['sessions', 'project.json']);
 const ALWAYS_SKIP = new Set(['.DS_Store', 'Thumbs.db', '.gitkeep']);
 
@@ -81,13 +84,16 @@ export async function writeTextFile(scope: Scope, relPath: string, text: string,
   await fs.writeFile(abs, text, 'utf8');
 }
 
-export async function saveUpload(scope: Scope, relDir: string, name: string, data: Buffer, projectId?: string): Promise<string> {
+/** Saves an upload; office documents additionally get a text version next to them. */
+export async function saveUpload(scope: Scope, relDir: string, name: string, data: Buffer, projectId?: string): Promise<string[]> {
   const cleanName = path.basename(name).replace(/[^\w.() \-À-ɏ]+/g, '_');
   const rel = relDir ? `${relDir.replace(/\/+$/, '')}/${cleanName}` : cleanName;
   const abs = safeJoin(scopeRoot(scope, projectId), rel);
   await fs.mkdir(path.dirname(abs), { recursive: true });
   await fs.writeFile(abs, data);
-  return rel;
+  let converted: string[] = [];
+  try { converted = await convertUpload(abs, rel); } catch (err) { console.warn(`Could not convert ${rel}:`, err); }
+  return [rel, ...converted];
 }
 
 export async function deleteFile(scope: Scope, relPath: string, projectId?: string): Promise<void> {
@@ -101,8 +107,6 @@ export async function renameFile(scope: Scope, from: string, to: string, project
   await fs.mkdir(path.dirname(absTo), { recursive: true });
   await fs.rename(safeJoin(root, from), absTo);
 }
-
-export { effectiveMode };
 
 // ---------- projects ----------
 
@@ -156,10 +160,9 @@ export async function createProject(name: string, description = ''): Promise<Pro
   for (let i = 2; await exists(projectDir(id)); i++) id = `${base}-${i}`;
   const project: Project = { id, name: name.trim() || id, description, createdAt: new Date().toISOString(), defaults: {} };
   const dir = projectDir(id);
-  for (const sub of ['context/original', 'context/translation', 'output', 'sessions']) {
+  for (const sub of ['context/original', 'context/translation', 'instructions', 'output', 'sessions']) {
     await fs.mkdir(path.join(dir, sub), { recursive: true });
   }
-  // The three tracking documents every review round reads and updates.
   for (const [file, text] of Object.entries(PROJECT_TEMPLATES)) {
     await fs.writeFile(path.join(dir, 'context', file), text.replaceAll('{{name}}', project.name), 'utf8');
   }
@@ -181,8 +184,8 @@ export async function deleteProject(id: string): Promise<void> {
 
 // ---------- sessions ----------
 
-export async function listSessions(projectId: string): Promise<Session[]> {
-  const dir = sessionsDir(projectId);
+export async function listSessions(owner: string): Promise<Session[]> {
+  const dir = sessionsDir(owner);
   await fs.mkdir(dir, { recursive: true });
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const sessions: Session[] = [];
@@ -195,54 +198,62 @@ export async function listSessions(projectId: string): Promise<Session[]> {
   return sessions;
 }
 
-export async function getSession(projectId: string, sessionId: string): Promise<Session> {
-  const s = await readJson<Session>(path.join(sessionDir(projectId, sessionId), 'session.json'));
+export async function getSession(owner: string, sessionId: string): Promise<Session> {
+  const s = await readJson<Session>(path.join(sessionDir(owner, sessionId), 'session.json'));
   if (!s) throw new HttpError(404, `No such session: ${sessionId}`);
   return s;
 }
 
-export async function createSession(projectId: string, init: Partial<Session> = {}): Promise<Session> {
-  const project = await getProject(projectId);
-  // Snapshot the effective selection so later changes to project defaults don't silently alter it.
-  const files = [...(await listFiles('global')), ...(await listFiles('project', projectId))];
-  const context: ContextSelection = {};
-  for (const f of files) context[fileKey(f.scope, f.path)] = effectiveMode(f, project.defaults);
+export async function createSession(owner: string, kind: SessionKind, init: Partial<Session> = {}): Promise<Session> {
+  let context: ContextSelection = init.context ?? {};
+  let model = init.model ?? DEFAULT_MODEL;
+  if (kind === 'work') {
+    const project = await getProject(owner);
+    // Snapshot the effective selection so later changes to project defaults don't silently alter it.
+    const files = [...(await listFiles('global')), ...(await listFiles('project', owner))];
+    if (!init.context) {
+      context = {};
+      for (const f of files) context[fileKey(f.scope, f.path)] = effectiveMode(f, project.defaults);
+    }
+    model = init.model ?? project.model ?? DEFAULT_MODEL;
+  }
   const now = new Date().toISOString();
   const session: Session = {
     id: randomUUID().slice(0, 8),
-    projectId,
+    owner,
+    kind,
     title: init.title || 'New session',
     createdAt: now,
     updatedAt: now,
-    context: init.context ?? context,
-    model: init.model ?? project.model ?? DEFAULT_MODEL,
+    context,
+    model,
     effort: init.effort ?? 'high',
     totalCostUsd: 0,
   };
-  await writeJson(path.join(sessionDir(projectId, session.id), 'session.json'), session);
-  await writeJson(path.join(sessionDir(projectId, session.id), 'messages.json'), []);
+  await writeJson(path.join(sessionDir(owner, session.id), 'session.json'), session);
+  await writeJson(path.join(sessionDir(owner, session.id), 'messages.json'), []);
   return session;
 }
 
-export async function updateSession(projectId: string, sessionId: string, patch: Partial<Session>): Promise<Session> {
-  const current = await getSession(projectId, sessionId);
+export async function updateSession(owner: string, sessionId: string, patch: Partial<Session>): Promise<Session> {
+  const current = await getSession(owner, sessionId);
   const next: Session = {
-    ...current, ...patch, id: current.id, projectId: current.projectId, createdAt: current.createdAt,
+    ...current, ...patch, id: current.id, owner: current.owner, kind: current.kind, createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
   };
-  await writeJson(path.join(sessionDir(projectId, sessionId), 'session.json'), next);
+  await writeJson(path.join(sessionDir(owner, sessionId), 'session.json'), next);
   return next;
 }
 
-export async function deleteSession(projectId: string, sessionId: string): Promise<void> {
+export async function deleteSession(owner: string, sessionId: string): Promise<void> {
   safeSegment(sessionId);
-  await fs.rm(sessionDir(projectId, sessionId), { recursive: true, force: true });
+  await fs.rm(sessionDir(owner, sessionId), { recursive: true, force: true });
 }
 
-export async function getMessages(projectId: string, sessionId: string): Promise<ChatMessage[]> {
-  return (await readJson<ChatMessage[]>(path.join(sessionDir(projectId, sessionId), 'messages.json'))) ?? [];
+export async function getMessages(owner: string, sessionId: string): Promise<ChatMessage[]> {
+  return (await readJson<ChatMessage[]>(path.join(sessionDir(owner, sessionId), 'messages.json'))) ?? [];
 }
 
-export async function saveMessages(projectId: string, sessionId: string, messages: ChatMessage[]): Promise<void> {
-  await writeJson(path.join(sessionDir(projectId, sessionId), 'messages.json'), messages);
+export async function saveMessages(owner: string, sessionId: string, messages: ChatMessage[]): Promise<void> {
+  await writeJson(path.join(sessionDir(owner, sessionId), 'messages.json'), messages);
 }

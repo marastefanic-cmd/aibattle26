@@ -1,5 +1,5 @@
 import type {
-  ChatMessage, ContextFile, ContextSelection, HealthInfo, PermissionRequest, Project, Scope, Session,
+  AuthStatus, ChatMessage, ContextFile, ContextSelection, HealthInfo, PermissionRequest, Project, Scope, Session, SessionKind,
 } from '../../shared/types';
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -18,34 +18,44 @@ const json = (method: string, body?: unknown): RequestInit => ({
   body: body === undefined ? undefined : JSON.stringify(body),
 });
 
-function scopeQuery(scope: Scope, projectId?: string): string {
-  return scope === 'project' ? `?project=${encodeURIComponent(projectId ?? '')}` : '';
+function q(scope: Scope, projectId: string | undefined, extra: Record<string, string> = {}): string {
+  const params = new URLSearchParams(extra);
+  if (scope === 'project') params.set('project', projectId ?? '');
+  const s = params.toString();
+  return s ? `?${s}` : '';
 }
 
 export const api = {
   health: () => request<HealthInfo>('/api/health'),
   appGuide: () => request<{ text: string }>('/api/app-guide'),
 
+  // auth
+  authStatus: () => request<AuthStatus>('/api/auth/status'),
+  loginStart: (mode: 'claudeai' | 'console') => request<{ url: string }>('/api/auth/login/start', json('POST', { mode })),
+  loginCode: (code: string) => request<AuthStatus>('/api/auth/login/code', json('POST', { code })),
+  loginCancel: () => request('/api/auth/login/cancel', json('POST')),
+  saveApiKey: (key: string) => request<AuthStatus>('/api/auth/api-key', json('POST', { key })),
+  logout: () => request<AuthStatus>('/api/auth/logout', json('POST')),
+
   // files
-  listFiles: (scope: Scope, projectId?: string) => request<ContextFile[]>(`/api/files/${scope}${scopeQuery(scope, projectId)}`),
+  listFiles: (scope: Scope, projectId?: string) => request<ContextFile[]>(`/api/files/${scope}${q(scope, projectId)}`),
   readFile: (scope: Scope, path: string, projectId?: string) =>
-    request<{ path: string; text: string }>(`/api/files/${scope}/content${scopeQuery(scope, projectId)}${scope === 'project' ? '&' : '?'}path=${encodeURIComponent(path)}`),
-  fileUrl: (scope: Scope, path: string, projectId?: string) =>
-    `/api/files/${scope}/content${scopeQuery(scope, projectId)}${scope === 'project' ? '&' : '?'}path=${encodeURIComponent(path)}`,
+    request<{ path: string; text: string }>(`/api/files/${scope}/content${q(scope, projectId, { path })}`),
+  fileUrl: (scope: Scope, path: string, projectId?: string) => `/api/files/${scope}/content${q(scope, projectId, { path })}`,
   writeFile: (scope: Scope, path: string, text: string, projectId?: string) =>
-    request(`/api/files/${scope}/content${scopeQuery(scope, projectId)}`, json('PUT', { path, text })),
+    request(`/api/files/${scope}/content${q(scope, projectId)}`, json('PUT', { path, text })),
   upload: (scope: Scope, files: FileList | File[], dir: string, projectId?: string) => {
     const fd = new FormData();
     fd.append('dir', dir);
     for (const f of Array.from(files)) fd.append('files', f);
-    return request<{ saved: string[] }>(`/api/files/${scope}/upload${scopeQuery(scope, projectId)}`, { method: 'POST', body: fd });
+    return request<{ saved: string[] }>(`/api/files/${scope}/upload${q(scope, projectId)}`, { method: 'POST', body: fd });
   },
   renameFile: (scope: Scope, from: string, to: string, projectId?: string) =>
-    request(`/api/files/${scope}/rename${scopeQuery(scope, projectId)}`, json('POST', { from, to })),
+    request(`/api/files/${scope}/rename${q(scope, projectId)}`, json('POST', { from, to })),
   deleteFile: (scope: Scope, path: string, projectId?: string) =>
-    request(`/api/files/${scope}${scopeQuery(scope, projectId)}${scope === 'project' ? '&' : '?'}path=${encodeURIComponent(path)}`, { method: 'DELETE' }),
+    request(`/api/files/${scope}${q(scope, projectId, { path })}`, { method: 'DELETE' }),
 
-  // projects
+  // projects (games)
   listProjects: () => request<Project[]>('/api/projects'),
   createProject: (name: string, description = '') => request<Project>('/api/projects', json('POST', { name, description })),
   updateProject: (id: string, patch: Partial<Project>) => request<Project>(`/api/projects/${id}`, json('PATCH', patch)),
@@ -53,19 +63,19 @@ export const api = {
   contextDefaults: (id: string) => request<ContextSelection>(`/api/projects/${id}/context-defaults`),
 
   // sessions
-  listSessions: (projectId: string) => request<Session[]>(`/api/projects/${projectId}/sessions`),
-  createSession: (projectId: string, init: Partial<Session> = {}) => request<Session>(`/api/projects/${projectId}/sessions`, json('POST', init)),
-  getSession: (projectId: string, sid: string) =>
-    request<{ session: Session; messages: ChatMessage[]; running: boolean; pending: PermissionRequest[] }>(`/api/projects/${projectId}/sessions/${sid}`),
-  updateSession: (projectId: string, sid: string, patch: Partial<Session>) =>
-    request<Session>(`/api/projects/${projectId}/sessions/${sid}`, json('PATCH', patch)),
-  deleteSession: (projectId: string, sid: string) => request(`/api/projects/${projectId}/sessions/${sid}`, { method: 'DELETE' }),
-  contextPreview: (projectId: string, sid: string) =>
-    request<{ systemPrompt: string; tokens: number; inline: number; reference: number }>(`/api/projects/${projectId}/sessions/${sid}/context`),
-  sendMessage: (projectId: string, sid: string, text: string) =>
-    request(`/api/projects/${projectId}/sessions/${sid}/messages`, json('POST', { text })),
-  abort: (projectId: string, sid: string) => request(`/api/projects/${projectId}/sessions/${sid}/abort`, json('POST')),
-  resolvePermission: (projectId: string, sid: string, rid: string, allow: boolean) =>
-    request(`/api/projects/${projectId}/sessions/${sid}/permissions/${rid}`, json('POST', { allow })),
-  eventsUrl: (projectId: string, sid: string) => `/api/projects/${projectId}/sessions/${sid}/events`,
+  listSessions: (owner: string) => request<Session[]>(`/api/sessions/${owner}`),
+  createSession: (owner: string, kind: SessionKind, init: Partial<Session> = {}) =>
+    request<Session>(`/api/sessions/${owner}`, json('POST', { ...init, kind })),
+  getSession: (owner: string, sid: string) =>
+    request<{ session: Session; messages: ChatMessage[]; running: boolean; pending: PermissionRequest[] }>(`/api/sessions/${owner}/${sid}`),
+  updateSession: (owner: string, sid: string, patch: Partial<Session>) =>
+    request<Session>(`/api/sessions/${owner}/${sid}`, json('PATCH', patch)),
+  deleteSession: (owner: string, sid: string) => request(`/api/sessions/${owner}/${sid}`, { method: 'DELETE' }),
+  contextPreview: (owner: string, sid: string) =>
+    request<{ systemPrompt: string; tokens: number; inline: number; reference: number }>(`/api/sessions/${owner}/${sid}/context`),
+  sendMessage: (owner: string, sid: string, text: string) => request(`/api/sessions/${owner}/${sid}/messages`, json('POST', { text })),
+  abort: (owner: string, sid: string) => request(`/api/sessions/${owner}/${sid}/abort`, json('POST')),
+  resolvePermission: (owner: string, sid: string, rid: string, allow: boolean) =>
+    request(`/api/sessions/${owner}/${sid}/permissions/${rid}`, json('POST', { allow })),
+  eventsUrl: (owner: string, sid: string) => `/api/sessions/${owner}/${sid}/events`,
 };
