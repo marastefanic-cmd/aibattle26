@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { GLOBAL_OWNER, APP_OWNER, type HealthInfo, type Project, type Scope, type Session, type SessionKind } from '../../shared/types';
+import type { HealthInfo, Project, Scope, Session, SessionKind } from '../../shared/types';
 import { api } from './api';
 import { Nav } from './components/Nav';
-import { SetupWizard } from './components/SetupWizard';
 import { HelpModal } from './components/HelpModal';
 import { FileEditor } from './components/FileEditor';
 import { InstructionsPage } from './pages/InstructionsPage';
@@ -23,9 +22,8 @@ export interface Shell {
   go: (v: View) => void;
   report: (e: unknown) => void;
   refreshProjects: () => Promise<Project[]>;
-  openSession: (owner: string, kind: SessionKind) => Promise<void>;
-  openSetup: () => void;
   refreshHealth: () => Promise<void>;
+  openSession: (owner: string, kind: SessionKind) => Promise<void>;
 }
 
 const VIEW_KEY = 'view';
@@ -42,8 +40,6 @@ export function App() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [view, setView] = useState<View>(loadView);
-  const [showSetup, setShowSetup] = useState(false);
-  const [setupDismissed, setSetupDismissed] = useState(() => localStorage.getItem('setupDismissed') === '1');
   const [showHelp, setShowHelp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,12 +78,9 @@ export function App() {
     } catch (e) { report(e); }
   }, [go, report]);
 
-  const openSetup = useCallback(() => setShowSetup(true), []);
   const shell: Shell = useMemo(() => ({
-    projects, health, go, report, refreshProjects, openSession, openSetup, refreshHealth,
-  }), [projects, health, go, report, refreshProjects, openSession, openSetup, refreshHealth]);
-
-  const needsSetup = health !== null && !health.auth.connected && !setupDismissed;
+    projects, health, go, report, refreshProjects, refreshHealth, openSession,
+  }), [projects, health, go, report, refreshProjects, refreshHealth, openSession]);
 
   let page;
   switch (view.type) {
@@ -122,7 +115,6 @@ export function App() {
         onNewGame={async (name) => {
           try { const p = await api.createProject(name); await refreshProjects(); go({ type: 'game', id: p.id }); } catch (e) { report(e); }
         }}
-        onConnect={() => setShowSetup(true)}
         onHelp={() => setShowHelp(true)}
       />
       <main className="main">
@@ -134,17 +126,7 @@ export function App() {
         )}
         {page}
       </main>
-
-      {(showSetup || needsSetup) && (
-        <SetupWizard
-          auth={health?.auth ?? null}
-          onDone={async () => { setShowSetup(false); await refreshHealth(); }}
-          onSkip={() => { setShowSetup(false); setSetupDismissed(true); localStorage.setItem('setupDismissed', '1'); }}
-        />
-      )}
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
   );
 }
-
-export const OWNERS = { global: GLOBAL_OWNER, app: APP_OWNER };

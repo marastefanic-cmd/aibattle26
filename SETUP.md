@@ -1,20 +1,20 @@
 # Setting up Rulebook Studio
 
-This is for whoever installs the app on the translator's computer (a friend, or an AI assistant
-helping them). It takes about five minutes. After this, the translator only ever double-clicks
-one file to start the app.
+For whoever installs the app on the translator's computer (a friend, or an AI assistant helping
+them). About five minutes. Afterwards the translator only ever double-clicks one file.
 
 ## 1. Install Node.js
 
-Install the **LTS** version from <https://nodejs.org>. Nothing else is needed.
+Install the **LTS** version from <https://nodejs.org>. On Windows, tick the option to install
+the build tools if the installer offers it (needed for the terminal component on some setups).
 
 ## 2. Get the app
 
-Either download this repository as a ZIP from GitHub and unzip it somewhere permanent
-(for example `Documents/Rulebook Studio`), or:
+Download this repository as a ZIP from GitHub and unzip it somewhere permanent (for example
+`Documents/Rulebook Studio`), or:
 
 ```bash
-git clone <this repository's URL> "Rulebook Studio"
+git clone https://github.com/marastefanic-cmd/bendaide "Rulebook Studio"
 ```
 
 ## 3. Start it
@@ -24,33 +24,28 @@ git clone <this repository's URL> "Rulebook Studio"
 - **Windows**: double-click `start.bat`.
 - **Linux**: run `./start.sh`.
 
-The first start installs the app's components (a minute or two). Then the browser opens at
-<http://localhost:5173>. The black window that stays open is the app running; closing it stops the app.
+The first start installs the app's components (a minute or two; this also installs Claude
+Code, so nothing else is needed). Then the browser opens at <http://localhost:5173>. The black
+window that stays open is the app running; closing it stops the app.
 
-## 4. Connect Claude
+## 4. First session: sign in
 
-The app asks for this on first launch. Pick **"I have a Claude subscription"** (Claude Pro or Max),
-sign in in the browser, copy the code it shows, paste it into the app. Done — it stays connected.
+Open **Persistent instructions** and press **＋ Tell the AI what to change**, or add a game and
+press **＋ New session**. A terminal with Claude Code appears. The first time, it will ask you to
+sign in: type `/login`, press Enter, and follow the steps in the browser (a Claude Pro/Max
+subscription or an Anthropic Console account both work). It stays signed in afterwards.
 
-If the translator has an Anthropic API key instead, pick "I have an API key" and paste it.
-
-Either way, credentials are stored only on that computer (Claude login in the Claude config folder,
-an API key in `workspace/.local/`). They are never committed to git.
+Prefer ChatGPT? Install Codex (`npm install -g @openai/codex`), then in **The app** choose
+"Codex (ChatGPT)". Sign in inside Codex the same way.
 
 ## 5. Show them the three parts
 
-1. **Persistent instructions** (purple) — rules the AI follows in every game. Click the big
-   **＋ Tell the AI what to change** button and describe a rule in plain words.
-2. **Games** — one folder per game. Upload the original rules and the translation, then open
-   **＋ New session** and tell the AI what to check. Each game also has its own instructions.
-3. **The app** (blue) — the Claude connection, and **＋ Ask for a change in the app** to change
-   the app itself by describing what you want. Changes appear live.
-
-## Updating the app later
-
-If you keep it as a git checkout: `git pull` then restart. If the AI has modified the app locally
-(via "Ask for a change in the app"), those changes live in the same folder — commit them or keep
-them, your choice.
+1. **Persistent instructions** (purple) — rules the assistant follows in every game. Press
+   **＋ Tell the AI what to change** and describe a rule in plain words.
+2. **Games** — one folder per game. Upload the original rules and the translation, then press
+   **＋ New session** and tell the assistant what to check. Each game also has its own instructions.
+3. **The app** (blue) — which assistant to use, and **＋ Ask for a change in the app** to change the
+   app itself by describing what you want. Changes appear live.
 
 ## Where the data lives
 
@@ -61,19 +56,21 @@ workspace/global/               persistent instructions (every game)
 workspace/projects/<game>/      one folder per game
   instructions/                   game-specific instructions
   context/                        original rules, translation, glossary, changelog, buglist
-  output/                         files the AI produced
-  sessions/                       chat transcripts
-workspace/_sessions/            transcripts of instruction-change and app-change sessions
-workspace/.local/               saved API key (if used)
+  output/                         files the assistant produced
+  sessions/                       session metadata (the conversation itself is kept by Claude Code)
+workspace/_sessions/            instruction-change and app-change sessions
+workspace/settings.json         which assistant is used
 ```
 
 Back up `workspace/` and you have everything.
 
 ## Troubleshooting
 
-- **"Not connected" in the bottom-left** → open *The app* → Connect.
+- **Bottom-left says "Terminal host down"** → close the app's black window and start it again.
+- **The assistant window is empty or ended** → press **Start again** at the bottom of the window.
+- **It asks to sign in again** → type `/login` in the assistant window.
 - **Port already in use** → another copy is running; close the other black window.
-- **The AI says it can't read a Word file** → re-upload it; Word (.docx) and Excel files are
-  converted to text on upload. Old `.doc` files must be saved as `.docx` first.
+- **Old `.doc` files** → save them as `.docx` first; `.docx` and `.xlsx` are converted automatically.
 - **Something broke after "Ask for a change in the app"** → in the app folder run
-  `git checkout -- .` to undo uncommitted changes (only if the app is a git checkout), then restart.
+  `git checkout -- .` (undoes uncommitted changes; only for a git checkout), then restart.
+- **Updating**: `git pull` in the app folder, then restart.

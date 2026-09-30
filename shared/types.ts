@@ -2,36 +2,20 @@
 
 export type Scope = 'global' | 'project';
 
-/** How a context file is handed to the AI at session start. */
-export type FileMode =
-  | 'inline' // full content is placed in the system prompt
-  | 'reference' // only the path is listed; the AI reads it on demand
-  | 'off'; // not mentioned at all
-
-export type FileKind = 'text' | 'binary';
-
 export interface ContextFile {
   scope: Scope;
   /** Path relative to the scope root (global dir or project dir). */
   path: string;
   size: number;
   mtime: number;
-  kind: FileKind;
-  /** Rough token estimate (chars / 4) for text files. */
-  tokens: number;
+  kind: 'text' | 'binary';
 }
-
-/** Map of "scope:path" -> mode. Files not present fall back to defaults. */
-export type ContextSelection = Record<string, FileMode>;
 
 export interface Project {
   id: string;
   name: string;
   description: string;
   createdAt: string;
-  /** Default context selection for new sessions in this project. */
-  defaults: ContextSelection;
-  model?: string;
 }
 
 /**
@@ -44,113 +28,68 @@ export type SessionKind = 'work' | 'instructions' | 'app';
 export const GLOBAL_OWNER = '_global';
 export const APP_OWNER = '_app';
 
+/** Which command-line AI assistant runs inside the terminal. */
+export type AgentKind = 'claude' | 'codex' | 'custom';
+
 export interface Session {
+  /** A UUID: Claude Code uses it as its own conversation id so the session can be resumed. */
   id: string;
   owner: string;
   kind: SessionKind;
   title: string;
   createdAt: string;
   updatedAt: string;
-  /** Claude Agent SDK session id, set after the first turn. */
-  sdkSessionId?: string;
-  context: ContextSelection;
-  model: string;
-  effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
-  totalCostUsd: number;
+  agent: AgentKind;
+  /** How many times the assistant was started in this session (0 = never). */
+  launches: number;
 }
 
-export type Block =
-  | { type: 'text'; text: string }
-  | { type: 'thinking'; text: string }
-  | { type: 'tool_use'; id: string; name: string; input: unknown }
-  | { type: 'tool_result'; toolUseId: string; content: string; isError?: boolean };
-
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  createdAt: string;
-  blocks: Block[];
-  /** Set on assistant messages while the turn is still streaming. */
-  streaming?: boolean;
-  error?: string;
+export interface SessionStatus {
+  /** The assistant process exists in the terminal host. */
+  launched: boolean;
+  alive: boolean;
+  exitCode?: number | null;
 }
 
-export interface PermissionRequest {
-  id: string;
-  sessionId: string;
-  toolName: string;
-  input: Record<string, unknown>;
-  createdAt: string;
+export interface Settings {
+  agent: AgentKind;
+  /** For agent = custom: a shell command. {context} = path of the generated context file, {cwd} = app folder. */
+  customCommand: string;
+  /** Optional Claude model alias (opus, sonnet, …). Empty = Claude Code's default. */
+  claudeModel: string;
 }
 
-/** Server -> client events over SSE. */
-export type ServerEvent =
-  | { type: 'message'; message: ChatMessage }
-  | { type: 'text_delta'; messageId: string; text: string }
-  | { type: 'thinking_delta'; messageId: string; text: string }
-  | { type: 'turn_end'; messageId: string; costUsd?: number }
-  | { type: 'permission_request'; request: PermissionRequest }
-  | { type: 'permission_resolved'; requestId: string }
-  | { type: 'session'; session: Session }
-  | { type: 'status'; text: string }
-  | { type: 'error'; text: string };
-
-export interface AuthStatus {
-  connected: boolean;
-  method: 'api_key' | 'claude_login' | 'none';
-  detail?: string;
+export interface AgentInfo {
+  kind: AgentKind;
+  label: string;
+  available: boolean;
+  /** Where the executable was found. */
+  path?: string;
+  installHint: string;
 }
 
 export interface HealthInfo {
   ok: boolean;
   workspaceDir: string;
   appDir: string;
-  models: string[];
-  auth: AuthStatus;
+  settings: Settings;
+  agents: AgentInfo[];
+  /** The terminal host process (separate from the API) is reachable. */
+  terminalHost: boolean;
 }
-
-export const MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-fable-5-1'];
-export const DEFAULT_MODEL = 'claude-opus-5-5';
 
 export const TEXT_EXTENSIONS = new Set([
   '.md', '.markdown', '.txt', '.csv', '.tsv', '.json', '.yaml', '.yml', '.xml', '.html', '.htm',
   '.ts', '.tsx', '.js', '.jsx', '.css', '.srt', '.po', '.ini', '.toml', '.tex', '.rtf',
 ]);
 
-/** Office formats that are converted to text on upload; the original is kept but not handed to the AI. */
+/** Office formats that are converted to text on upload; the original is kept for reference. */
 export const CONVERTED_EXTENSIONS = new Set(['.docx', '.xlsx', '.xls', '.xlsm']);
-
-export function fileKey(scope: Scope, path: string): string {
-  return `${scope}:${path}`;
-}
 
 export function extOf(path: string): string {
   const i = path.lastIndexOf('.');
   return i === -1 ? '' : path.slice(i).toLowerCase();
 }
 
-export function estimateTokens(chars: number): number {
-  return Math.ceil(chars / 4);
-}
-
-/** Built-in default mode for a file that has no explicit selection. */
-export function defaultMode(file: ContextFile): FileMode {
-  if (CONVERTED_EXTENSIONS.has(extOf(file.path))) return 'off';
-  if (file.kind === 'binary') return 'reference';
-  if (file.scope === 'project' && file.path.startsWith('output/')) return 'reference';
-  if (file.tokens > 40_000) return 'reference';
-  return 'inline';
-}
-
-/** First explicit mode found in the given layers (most specific first), else the default. */
-export function effectiveMode(file: ContextFile, ...layers: (ContextSelection | undefined)[]): FileMode {
-  const key = fileKey(file.scope, file.path);
-  for (const layer of layers) {
-    const v = layer?.[key];
-    if (v) return v;
-  }
-  return defaultMode(file);
-}
-
-/** Rough token cost of the preamble the server adds before the context files. */
-export const PREAMBLE_TOKENS = 700;
+/** Text files above this size are listed by path instead of being inlined into the context. */
+export const INLINE_LIMIT_BYTES = 120_000;

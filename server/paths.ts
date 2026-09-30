@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,8 +11,11 @@ export const GLOBAL_DIR = path.join(WORKSPACE_DIR, 'global');
 export const PROJECTS_DIR = path.join(WORKSPACE_DIR, 'projects');
 /** Sessions that don't belong to a game (instruction edits, app changes). */
 export const SYSTEM_SESSIONS_DIR = path.join(WORKSPACE_DIR, '_sessions');
-/** Machine-local, git-ignored state (saved credentials). */
-export const LOCAL_DIR = path.join(WORKSPACE_DIR, '.local');
+export const SETTINGS_FILE = path.join(WORKSPACE_DIR, 'settings.json');
+
+export const API_PORT = Number(process.env.PORT ?? 3210);
+/** The terminal host is a separate process so assistant sessions survive API restarts. */
+export const TERMINAL_PORT = Number(process.env.TERMINAL_PORT ?? 3211);
 
 export function projectDir(projectId: string): string {
   return path.join(PROJECTS_DIR, safeSegment(projectId));
@@ -26,20 +28,6 @@ export function sessionsDir(owner: string): string {
 }
 export function sessionDir(owner: string, sessionId: string): string {
   return path.join(sessionsDir(owner), safeSegment(sessionId));
-}
-
-/**
- * The Claude Code binary bundled with the Agent SDK (installed as a platform-specific
- * optional dependency). Falls back to a `claude` on PATH.
- */
-export function claudeBinary(): string {
-  const platform = `${process.platform}-${process.arch}`;
-  const candidates = [
-    path.join(APP_DIR, 'node_modules', '@anthropic-ai', `claude-agent-sdk-${platform}`, process.platform === 'win32' ? 'claude.exe' : 'claude'),
-    path.join(APP_DIR, 'node_modules', '@anthropic-ai', `claude-agent-sdk-${platform}-musl`, 'claude'),
-  ];
-  for (const c of candidates) if (fs.existsSync(c)) return c;
-  return 'claude';
 }
 
 /** Reject path segments that could escape a directory. */

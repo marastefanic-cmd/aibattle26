@@ -2,15 +2,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
-  type ChatMessage, type ContextFile, type ContextSelection, type Project, type Scope, type Session, type SessionKind,
-  DEFAULT_MODEL, TEXT_EXTENSIONS, effectiveMode, estimateTokens, fileKey,
+  type ContextFile, type Project, type Scope, type Session, type SessionKind, type Settings, TEXT_EXTENSIONS,
 } from '../shared/types.js';
 import { convertUpload } from './convert.js';
 import {
-  GLOBAL_DIR, PROJECTS_DIR, HttpError, projectDir, safeJoin, safeSegment, sessionDir, sessionsDir, slugify,
+  GLOBAL_DIR, PROJECTS_DIR, SETTINGS_FILE, HttpError, projectDir, safeJoin, safeSegment, sessionDir, sessionsDir, slugify,
 } from './paths.js';
-
-export { effectiveMode };
 
 // ---------- helpers ----------
 
@@ -43,6 +40,21 @@ export function scopeRoot(scope: Scope, projectId?: string): string {
   return projectDir(projectId);
 }
 
+// ---------- settings ----------
+
+const DEFAULT_SETTINGS: Settings = { agent: 'claude', customCommand: '', claudeModel: '' };
+
+export async function getSettings(): Promise<Settings> {
+  return { ...DEFAULT_SETTINGS, ...((await readJson<Partial<Settings>>(SETTINGS_FILE)) ?? {}) };
+}
+
+export async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
+  const next = { ...(await getSettings()), ...patch };
+  if (!['claude', 'codex', 'custom'].includes(next.agent)) throw new HttpError(400, 'unknown agent');
+  await writeJson(SETTINGS_FILE, next);
+  return next;
+}
+
 // ---------- files ----------
 
 export async function listFiles(scope: Scope, projectId?: string): Promise<ContextFile[]> {
@@ -60,11 +72,7 @@ export async function listFiles(scope: Scope, projectId?: string): Promise<Conte
       if (e.isDirectory()) { await walk(abs, relPath); continue; }
       if (!e.isFile()) continue;
       const st = await fs.stat(abs);
-      const kind = isTextFile(e.name) ? 'text' : 'binary';
-      out.push({
-        scope, path: relPath, size: st.size, mtime: st.mtimeMs, kind,
-        tokens: kind === 'text' ? estimateTokens(st.size) : 0,
-      });
+      out.push({ scope, path: relPath, size: st.size, mtime: st.mtimeMs, kind: isTextFile(e.name) ? 'text' : 'binary' });
     }
   }
   await walk(root, '');
@@ -108,7 +116,7 @@ export async function renameFile(scope: Scope, from: string, to: string, project
   await fs.rename(safeJoin(root, from), absTo);
 }
 
-// ---------- projects ----------
+// ---------- projects (games) ----------
 
 const PROJECT_TEMPLATES: Record<string, string> = {
   'glossary-en-cz.md': `# {{name}} — EN → CZ glossary
@@ -158,7 +166,7 @@ export async function createProject(name: string, description = ''): Promise<Pro
   const base = slugify(name);
   let id = base;
   for (let i = 2; await exists(projectDir(id)); i++) id = `${base}-${i}`;
-  const project: Project = { id, name: name.trim() || id, description, createdAt: new Date().toISOString(), defaults: {} };
+  const project: Project = { id, name: name.trim() || id, description, createdAt: new Date().toISOString() };
   const dir = projectDir(id);
   for (const sub of ['context/original', 'context/translation', 'instructions', 'output', 'sessions']) {
     await fs.mkdir(path.join(dir, sub), { recursive: true });
@@ -204,35 +212,27 @@ export async function getSession(owner: string, sessionId: string): Promise<Sess
   return s;
 }
 
-export async function createSession(owner: string, kind: SessionKind, init: Partial<Session> = {}): Promise<Session> {
-  let context: ContextSelection = init.context ?? {};
-  let model = init.model ?? DEFAULT_MODEL;
-  if (kind === 'work') {
-    const project = await getProject(owner);
-    // Snapshot the effective selection so later changes to project defaults don't silently alter it.
-    const files = [...(await listFiles('global')), ...(await listFiles('project', owner))];
-    if (!init.context) {
-      context = {};
-      for (const f of files) context[fileKey(f.scope, f.path)] = effectiveMode(f, project.defaults);
-    }
-    model = init.model ?? project.model ?? DEFAULT_MODEL;
-  }
+export async function createSession(owner: string, kind: SessionKind, title?: string): Promise<Session> {
+  if (kind === 'work') await getProject(owner);
+  const settings = await getSettings();
   const now = new Date().toISOString();
   const session: Session = {
-    id: randomUUID().slice(0, 8),
+    id: randomUUID(),
     owner,
     kind,
-    title: init.title || 'New session',
+    title: title?.trim() || defaultTitle(kind, now),
     createdAt: now,
     updatedAt: now,
-    context,
-    model,
-    effort: init.effort ?? 'high',
-    totalCostUsd: 0,
+    agent: settings.agent,
+    launches: 0,
   };
   await writeJson(path.join(sessionDir(owner, session.id), 'session.json'), session);
-  await writeJson(path.join(sessionDir(owner, session.id), 'messages.json'), []);
   return session;
+}
+
+function defaultTitle(kind: SessionKind, iso: string): string {
+  const when = new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  return `${kind === 'app' ? 'App change' : kind === 'instructions' ? 'Instruction change' : 'Session'} · ${when}`;
 }
 
 export async function updateSession(owner: string, sessionId: string, patch: Partial<Session>): Promise<Session> {
@@ -250,10 +250,10 @@ export async function deleteSession(owner: string, sessionId: string): Promise<v
   await fs.rm(sessionDir(owner, sessionId), { recursive: true, force: true });
 }
 
-export async function getMessages(owner: string, sessionId: string): Promise<ChatMessage[]> {
-  return (await readJson<ChatMessage[]>(path.join(sessionDir(owner, sessionId), 'messages.json'))) ?? [];
-}
-
-export async function saveMessages(owner: string, sessionId: string, messages: ChatMessage[]): Promise<void> {
-  await writeJson(path.join(sessionDir(owner, sessionId), 'messages.json'), messages);
+/** Writes the generated context file for a session launch and returns its absolute path. */
+export async function writeContextFile(owner: string, sessionId: string, text: string): Promise<string> {
+  const p = path.join(sessionDir(owner, sessionId), 'context.md');
+  await fs.mkdir(path.dirname(p), { recursive: true });
+  await fs.writeFile(p, text, 'utf8');
+  return p;
 }

@@ -8,14 +8,14 @@ interface Props {
   health: HealthInfo | null;
   onGo: (v: View) => void;
   onNewGame: (name: string) => void;
-  onConnect: () => void;
   onHelp: () => void;
 }
 
-export function Nav({ projects, view, health, onGo, onNewGame, onConnect, onHelp }: Props) {
+export function Nav({ projects, view, health, onGo, onNewGame, onHelp }: Props) {
   const [newGame, setNewGame] = useState<string | null>(null);
   const activeGame = view.type === 'game' ? view.id : view.type === 'session' && !view.owner.startsWith('_') ? view.owner : null;
   const activeTop = view.type === 'session' ? (view.owner === '_global' ? 'instructions' : view.owner === '_app' ? 'app' : null) : view.type;
+  const agent = health?.agents.find((a) => a.kind === health.settings.agent);
 
   return (
     <aside className="nav">
@@ -65,17 +65,19 @@ export function Nav({ projects, view, health, onGo, onNewGame, onConnect, onHelp
         <span className="nav-icon">⚙</span>
         <span>
           <span className="nav-title">The app</span>
-          <span className="nav-sub">connection · change the app</span>
+          <span className="nav-sub">assistant · change the app</span>
         </span>
       </button>
 
       <div className="nav-footer">
-        <span className={`dot ${health?.auth.connected ? 'ok' : 'bad'}`}>●</span>
+        <span className={`dot ${agent?.available && health?.terminalHost ? 'ok' : 'bad'}`}>●</span>
         {health === null
           ? <span className="grow muted">Connecting…</span>
-          : health.auth.connected
-            ? <span className="grow ellipsis" title={health.auth.detail}>Claude connected</span>
-            : <button className="btn small primary grow" onClick={onConnect}>Connect Claude</button>}
+          : !health.terminalHost
+            ? <span className="grow">Terminal host down — restart the app</span>
+            : agent?.available
+              ? <span className="grow ellipsis" title={agent.path}>{agent.label} ready</span>
+              : <button className="btn small primary grow" onClick={() => onGo({ type: 'app' })}>Choose an assistant</button>}
       </div>
     </aside>
   );

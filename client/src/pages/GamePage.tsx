@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  type ContextFile, type ContextSelection, type FileMode, type Project, type Session,
-  PREAMBLE_TOKENS, effectiveMode, fileKey,
-} from '../../../shared/types';
+import type { ContextFile, Project, Session } from '../../../shared/types';
 import { api } from '../api';
 import type { Shell, View } from '../App';
 import { FileRows } from '../components/FileRows';
@@ -17,17 +14,14 @@ const FOLDERS: { dir: string; label: string }[] = [
 
 export function GamePage({ shell, project }: { shell: Shell; project: Project }) {
   const [files, setFiles] = useState<ContextFile[]>([]);
-  const [globalFiles, setGlobalFiles] = useState<ContextFile[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [name, setName] = useState(project.name);
   const [dir, setDir] = useState(FOLDERS[0].dir);
-  const [advanced, setAdvanced] = useState(false);
   const back: View = { type: 'game', id: project.id };
 
   const refresh = useCallback(async () => {
     try {
       setFiles(await api.listFiles('project', project.id));
-      setGlobalFiles(await api.listFiles('global'));
       setSessions((await api.listSessions(project.id)).filter((s) => s.kind === 'work'));
     } catch (e) { shell.report(e); }
   }, [project.id, shell]);
@@ -36,15 +30,6 @@ export function GamePage({ shell, project }: { shell: Shell; project: Project })
 
   const contextFiles = files.filter((f) => !f.path.startsWith('instructions/') && !f.path.startsWith('output/'));
   const outputFiles = files.filter((f) => f.path.startsWith('output/'));
-
-  const modeOf = (f: ContextFile): FileMode => effectiveMode(f, project.defaults);
-  const setMode = async (f: ContextFile, mode: FileMode) => {
-    const defaults: ContextSelection = { ...project.defaults, [fileKey(f.scope, f.path)]: mode };
-    try { await api.updateProject(project.id, { defaults }); await shell.refreshProjects(); } catch (e) { shell.report(e); }
-  };
-
-  const readFiles = [...globalFiles, ...contextFiles].filter((f) => modeOf(f) !== 'off');
-  const words = Math.round(([...globalFiles, ...contextFiles].reduce((n, f) => n + (modeOf(f) === 'inline' ? f.tokens : 0), 0) + PREAMBLE_TOKENS) * 0.75);
 
   const rename = async () => {
     const n = name.trim();
@@ -61,7 +46,7 @@ export function GamePage({ shell, project }: { shell: Shell; project: Project })
     <div className="page">
       <header className="page-head accent-game">
         <input className="h1-input" value={name} onChange={(e) => setName(e.target.value)} onBlur={rename} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} title="Click to rename" />
-        <p className="lead">Everything about this game in one place: its files, its own instructions, and the sessions where the AI does the work.</p>
+        <p className="lead">Everything about this game in one place: its files, its own instructions, and the sessions where the assistant does the work.</p>
       </header>
 
       <h3>Sessions</h3>
@@ -69,7 +54,7 @@ export function GamePage({ shell, project }: { shell: Shell; project: Project })
         <span className="big-plus">＋</span>
         <span>
           <span className="big-title">New session</span>
-          <span className="big-sub">The AI starts already knowing the instructions and this game's files. Tell it what to check.</span>
+          <span className="big-sub">The assistant starts already knowing the instructions and this game's files. Tell it what to check.</span>
         </span>
       </button>
       <SessionList
@@ -80,7 +65,7 @@ export function GamePage({ shell, project }: { shell: Shell; project: Project })
       />
 
       <h3>Files for this game</h3>
-      <p className="muted">Upload the original rulebook, the translation, and anything else that matters. Word and Excel files are converted to text automatically so the AI can read them. The glossary, changelog and buglist were created for you — the AI keeps them up to date.</p>
+      <p className="muted">Upload the original rulebook, the translation, and anything else that matters. Word and Excel files are converted to text automatically so the assistant can read them. The glossary, changelog and buglist were created for you — the assistant keeps them up to date.</p>
       <FileRows
         scope="project" projectId={project.id} files={contextFiles} dir={dir} hidePrefix="context/"
         emptyText="No files yet."
@@ -94,44 +79,11 @@ export function GamePage({ shell, project }: { shell: Shell; project: Project })
             </select>
           </label>
         )}
-        extra={(f) => (
-          <label className="check" title="Untick to hide this file from the AI in new sessions">
-            <input type="checkbox" checked={modeOf(f) !== 'off'} onChange={(e) => setMode(f, e.target.checked ? (f.kind === 'text' ? 'inline' : 'reference') : 'off')} />
-            AI reads this
-          </label>
-        )}
       />
-      <p className="muted tiny">
-        New sessions start with {readFiles.length} file{readFiles.length === 1 ? '' : 's'} (about {words.toLocaleString()} words preloaded).
-        {' '}<button className="link-btn" onClick={() => setAdvanced((a) => !a)}>{advanced ? 'Hide details' : 'Fine-tune'}</button>
-      </p>
-      {advanced && (
-        <div className="card">
-          <p className="tiny muted">
-            <b>Read at start</b>: the whole file is given to the AI before it begins (best for instructions, glossary, short documents).
-            <b> Open when needed</b>: the AI only knows the file exists and opens it when it needs it (best for long PDFs).
-            <b> Hidden</b>: not mentioned at all. Applies to new sessions.
-          </p>
-          {[...globalFiles, ...contextFiles].map((f) => (
-            <div key={fileKey(f.scope, f.path)} className="file-row">
-              <span className="muted tiny" style={{ width: 70 }}>{f.scope === 'global' ? 'general' : 'this game'}</span>
-              <span className="grow ellipsis">{f.path}</span>
-              <span className="muted tiny">{f.kind === 'text' ? `~${Math.round(f.tokens * 0.75).toLocaleString()} words` : 'file'}</span>
-              <div className="seg">
-                {(['inline', 'reference', 'off'] as FileMode[]).map((m) => (
-                  <button key={m} className={modeOf(f) === m ? `on ${m}` : ''} disabled={m === 'inline' && f.kind !== 'text'} onClick={() => setMode(f, m)}>
-                    {m === 'inline' ? 'Read at start' : m === 'reference' ? 'Open when needed' : 'Hidden'}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {outputFiles.length > 0 && (
         <>
-          <h3>Results from the AI</h3>
+          <h3>Results from the assistant</h3>
           <FileRows
             scope="project" projectId={project.id} files={outputFiles} dir="output" hidePrefix="output/"
             emptyText="" uploadLabel="Add a file"

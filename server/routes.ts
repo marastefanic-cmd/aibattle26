@@ -2,14 +2,12 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import multer from 'multer';
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  fileKey, MODELS, type ContextSelection, type HealthInfo, type Scope, type ServerEvent, type SessionKind,
-} from '../shared/types.js';
-import { agents } from './agent.js';
-import { auth } from './auth.js';
+import type { HealthInfo, Scope, SessionKind } from '../shared/types.js';
+import { agentInfos, buildLaunch } from './agents.js';
 import { buildContext } from './context.js';
 import { APP_DIR, HttpError, WORKSPACE_DIR } from './paths.js';
 import * as store from './store.js';
+import { terminals } from './terminals.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
 export const api = Router();
@@ -31,25 +29,20 @@ function scopeOf(req: Req): { scope: Scope; projectId?: string } {
   return { scope, projectId };
 }
 
-// ---------- health & auth ----------
-api.get('/health', wrap(async (): Promise<HealthInfo> => ({
-  ok: true,
-  workspaceDir: WORKSPACE_DIR,
-  appDir: APP_DIR,
-  models: MODELS,
-  auth: await auth.status(),
-})));
-
-api.get('/auth/status', wrap(() => auth.status()));
-api.post('/auth/login/start', wrap((req) => auth.startLogin(req.body?.mode === 'console' ? 'console' : 'claudeai')));
-api.post('/auth/login/code', wrap((req) => {
-  const code = String(req.body?.code ?? '').trim();
-  if (!code) throw new HttpError(400, 'Paste the code first');
-  return auth.submitCode(code);
+// ---------- health & settings ----------
+api.get('/health', wrap(async (): Promise<HealthInfo> => {
+  const settings = await store.getSettings();
+  return {
+    ok: true,
+    workspaceDir: WORKSPACE_DIR,
+    appDir: APP_DIR,
+    settings,
+    agents: agentInfos(settings),
+    terminalHost: await terminals.healthy(),
+  };
 }));
-api.post('/auth/login/cancel', wrap(() => { auth.cancelLogin(); }));
-api.post('/auth/api-key', wrap(async (req) => { auth.saveApiKey(String(req.body?.key ?? '')); return auth.status(); }));
-api.post('/auth/logout', wrap(async () => { await auth.logout(); return auth.status(); }));
+api.get('/settings', wrap(() => store.getSettings()));
+api.put('/settings', wrap((req) => store.updateSettings(req.body ?? {})));
 
 // ---------- files ----------
 api.get('/files/:scope', wrap((req) => {
@@ -106,15 +99,9 @@ api.post('/projects', wrap((req) => {
 }));
 api.get('/projects/:id', wrap((req) => store.getProject(req.params.id)));
 api.patch('/projects/:id', wrap((req) => store.updateProject(req.params.id, req.body)));
-api.delete('/projects/:id', wrap((req) => store.deleteProject(req.params.id)));
-
-/** Effective modes for every file, combining project defaults and built-in defaults. */
-api.get('/projects/:id/context-defaults', wrap(async (req) => {
-  const project = await store.getProject(req.params.id);
-  const files = [...(await store.listFiles('global')), ...(await store.listFiles('project', project.id))];
-  const effective: ContextSelection = {};
-  for (const f of files) effective[fileKey(f.scope, f.path)] = store.effectiveMode(f, project.defaults);
-  return effective;
+api.delete('/projects/:id', wrap(async (req) => {
+  for (const s of await store.listSessions(req.params.id)) await terminals.kill(s.id).catch(() => undefined);
+  await store.deleteProject(req.params.id);
 }));
 
 // ---------- sessions (owner = project id, or _global / _app) ----------
@@ -124,61 +111,42 @@ api.get('/sessions/:owner', wrap((req) => store.listSessions(req.params.owner)))
 api.post('/sessions/:owner', wrap((req) => {
   const kind = req.body?.kind as SessionKind;
   if (!KINDS.includes(kind)) throw new HttpError(400, 'kind must be work, instructions or app');
-  return store.createSession(req.params.owner, kind, req.body ?? {});
+  return store.createSession(req.params.owner, kind, req.body?.title);
 }));
 
 api.get('/sessions/:owner/:sid', wrap(async (req) => {
-  const { owner, sid } = req.params;
-  const session = await store.getSession(owner, sid);
-  const messages = await store.getMessages(owner, sid);
-  const current = agents.currentAssistant(sid);
-  if (current) messages.push(current);
-  return { session, messages, running: agents.isRunning(sid), pending: agents.pendingPermissions(sid) };
+  const session = await store.getSession(req.params.owner, req.params.sid);
+  const status = await terminals.status(session.id).catch(() => ({ launched: false, alive: false, exitCode: null }));
+  return { session, status };
 }));
 
 api.patch('/sessions/:owner/:sid', wrap((req) => store.updateSession(req.params.owner, req.params.sid, req.body)));
 
 api.delete('/sessions/:owner/:sid', wrap(async (req) => {
-  agents.abort(req.params.sid);
+  await terminals.kill(req.params.sid).catch(() => undefined);
   await store.deleteSession(req.params.owner, req.params.sid);
 }));
 
-/** Preview of the system prompt the AI will receive. */
-api.get('/sessions/:owner/:sid/context', wrap(async (req) => {
-  const session = await store.getSession(req.params.owner, req.params.sid);
-  const ctx = await buildContext(session);
-  return { systemPrompt: ctx.systemPrompt, tokens: ctx.tokens, inline: ctx.inlineFiles.length, reference: ctx.referenceFiles.length };
+/** Generates the context and starts (or restarts) the assistant in the session's terminal. */
+api.post('/sessions/:owner/:sid/launch', wrap(async (req) => {
+  const { owner, sid } = req.params;
+  let session = await store.getSession(owner, sid);
+  const status = await terminals.status(session.id);
+  if (status.alive && !req.body?.restart) return { session, status };
+  if (status.alive) await terminals.kill(session.id);
+  if (req.body?.fresh) session = await store.updateSession(owner, sid, { launches: 0 });
+  const settings = await store.getSettings();
+  const contextFile = await store.writeContextFile(owner, sid, await buildContext(session));
+  const launch = buildLaunch({ ...session, agent: settings.agent }, contextFile, settings);
+  await terminals.spawn(session.id, launch);
+  session = await store.updateSession(owner, sid, { launches: session.launches + 1, agent: settings.agent });
+  return { session, status: await terminals.status(session.id) };
 }));
 
-api.post('/sessions/:owner/:sid/messages', wrap(async (req) => {
-  const text = String(req.body?.text ?? '').trim();
-  if (!text) throw new HttpError(400, 'text required');
-  await agents.send(req.params.owner, req.params.sid, text);
-}));
+api.post('/sessions/:owner/:sid/stop', wrap(async (req) => { await terminals.kill(req.params.sid); }));
 
-api.post('/sessions/:owner/:sid/abort', wrap((req) => { agents.abort(req.params.sid); }));
-
-api.post('/sessions/:owner/:sid/permissions/:rid', wrap((req) => {
-  agents.resolvePermission(req.params.sid, req.params.rid, Boolean(req.body?.allow));
-}));
-
-/** Server-sent events for one session. */
-api.get('/sessions/:owner/:sid/events', (req: Req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache, no-transform',
-    Connection: 'keep-alive',
-    'X-Accel-Buffering': 'no',
-  });
-  res.write(': connected\n\n');
-  const send = (ev: ServerEvent) => res.write(`data: ${JSON.stringify(ev)}\n\n`);
-  const unsubscribe = agents.subscribe(req.params.sid, send);
-  const ping = setInterval(() => res.write(': ping\n\n'), 20_000);
-  req.on('close', () => { clearInterval(ping); unsubscribe(); });
-});
-
-/** Used by scripts/dev-server.mjs: exit (to be respawned) once no AI turn is running. */
-api.post('/_restart', wrap(() => ({ deferred: agents.restartWhenIdle() })));
+/** The generated context, for the curious. */
+api.get('/sessions/:owner/:sid/context', wrap(async (req) => ({ text: await buildContext(await store.getSession(req.params.owner, req.params.sid)) })));
 
 // ---------- app guide (shown in the UI's help panel) ----------
 api.get('/app-guide', wrap(() => ({ text: fs.readFileSync(path.join(APP_DIR, 'APP_GUIDE.md'), 'utf8') })));

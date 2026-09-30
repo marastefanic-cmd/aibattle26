@@ -1,6 +1,4 @@
-import type {
-  AuthStatus, ChatMessage, ContextFile, ContextSelection, HealthInfo, PermissionRequest, Project, Scope, Session, SessionKind,
-} from '../../shared/types';
+import type { ContextFile, HealthInfo, Project, Scope, Session, SessionKind, SessionStatus, Settings } from '../../shared/types';
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -25,17 +23,12 @@ function q(scope: Scope, projectId: string | undefined, extra: Record<string, st
   return s ? `?${s}` : '';
 }
 
+export interface SessionInfo { session: Session; status: SessionStatus }
+
 export const api = {
   health: () => request<HealthInfo>('/api/health'),
   appGuide: () => request<{ text: string }>('/api/app-guide'),
-
-  // auth
-  authStatus: () => request<AuthStatus>('/api/auth/status'),
-  loginStart: (mode: 'claudeai' | 'console') => request<{ url: string }>('/api/auth/login/start', json('POST', { mode })),
-  loginCode: (code: string) => request<AuthStatus>('/api/auth/login/code', json('POST', { code })),
-  loginCancel: () => request('/api/auth/login/cancel', json('POST')),
-  saveApiKey: (key: string) => request<AuthStatus>('/api/auth/api-key', json('POST', { key })),
-  logout: () => request<AuthStatus>('/api/auth/logout', json('POST')),
+  updateSettings: (patch: Partial<Settings>) => request<Settings>('/api/settings', json('PUT', patch)),
 
   // files
   listFiles: (scope: Scope, projectId?: string) => request<ContextFile[]>(`/api/files/${scope}${q(scope, projectId)}`),
@@ -60,22 +53,18 @@ export const api = {
   createProject: (name: string, description = '') => request<Project>('/api/projects', json('POST', { name, description })),
   updateProject: (id: string, patch: Partial<Project>) => request<Project>(`/api/projects/${id}`, json('PATCH', patch)),
   deleteProject: (id: string) => request(`/api/projects/${id}`, { method: 'DELETE' }),
-  contextDefaults: (id: string) => request<ContextSelection>(`/api/projects/${id}/context-defaults`),
 
   // sessions
   listSessions: (owner: string) => request<Session[]>(`/api/sessions/${owner}`),
-  createSession: (owner: string, kind: SessionKind, init: Partial<Session> = {}) =>
-    request<Session>(`/api/sessions/${owner}`, json('POST', { ...init, kind })),
-  getSession: (owner: string, sid: string) =>
-    request<{ session: Session; messages: ChatMessage[]; running: boolean; pending: PermissionRequest[] }>(`/api/sessions/${owner}/${sid}`),
+  createSession: (owner: string, kind: SessionKind, title?: string) =>
+    request<Session>(`/api/sessions/${owner}`, json('POST', { kind, title })),
+  getSession: (owner: string, sid: string) => request<SessionInfo>(`/api/sessions/${owner}/${sid}`),
   updateSession: (owner: string, sid: string, patch: Partial<Session>) =>
     request<Session>(`/api/sessions/${owner}/${sid}`, json('PATCH', patch)),
   deleteSession: (owner: string, sid: string) => request(`/api/sessions/${owner}/${sid}`, { method: 'DELETE' }),
-  contextPreview: (owner: string, sid: string) =>
-    request<{ systemPrompt: string; tokens: number; inline: number; reference: number }>(`/api/sessions/${owner}/${sid}/context`),
-  sendMessage: (owner: string, sid: string, text: string) => request(`/api/sessions/${owner}/${sid}/messages`, json('POST', { text })),
-  abort: (owner: string, sid: string) => request(`/api/sessions/${owner}/${sid}/abort`, json('POST')),
-  resolvePermission: (owner: string, sid: string, rid: string, allow: boolean) =>
-    request(`/api/sessions/${owner}/${sid}/permissions/${rid}`, json('POST', { allow })),
-  eventsUrl: (owner: string, sid: string) => `/api/sessions/${owner}/${sid}/events`,
+  launchSession: (owner: string, sid: string, opts: { restart?: boolean; fresh?: boolean } = {}) =>
+    request<SessionInfo>(`/api/sessions/${owner}/${sid}/launch`, json('POST', opts)),
+  stopSession: (owner: string, sid: string) => request(`/api/sessions/${owner}/${sid}/stop`, json('POST')),
+  sessionContext: (owner: string, sid: string) => request<{ text: string }>(`/api/sessions/${owner}/${sid}/context`),
+  terminalUrl: (sid: string) => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/term/${sid}`,
 };
