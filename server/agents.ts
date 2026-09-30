@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import type { AgentInfo, AgentKind, Session, Settings } from '../shared/types.js';
 import { APP_DIR, HttpError } from './paths.js';
@@ -79,10 +80,13 @@ export function buildLaunch(session: Session, contextFile: string, settings: Set
 
   switch (kind) {
     case 'claude': {
+      // Resume only if Claude Code actually saved a conversation for this id (a session that was
+      // opened but never used has none, and --resume would fail); otherwise start it fresh.
+      const resume = session.launches > 0 && claudeTranscriptExists(session.id);
       const args = [
         '--append-system-prompt-file', contextFile,
         '--permission-mode', 'acceptEdits',
-        ...(session.launches > 0 ? ['--resume', session.id] : ['--session-id', session.id]),
+        ...(resume ? ['--resume', session.id] : ['--session-id', session.id]),
         ...(settings.claudeModel.trim() ? ['--model', settings.claudeModel.trim()] : []),
       ];
       return wrap(info.path!, args, env);
@@ -99,6 +103,13 @@ export function buildLaunch(session: Session, contextFile: string, settings: Set
         : { file: '/bin/sh', args: ['-c', cmd], cwd: APP_DIR, env };
     }
   }
+}
+
+/** Claude Code stores transcripts at <config dir>/projects/<cwd with non-alphanumerics as '-'>/<id>.jsonl */
+function claudeTranscriptExists(sessionId: string): boolean {
+  const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+  const projectKey = APP_DIR.replace(/[^A-Za-z0-9]/g, '-');
+  return fs.existsSync(path.join(configDir, 'projects', projectKey, `${sessionId}.jsonl`));
 }
 
 function wrap(file: string, args: string[], env: Record<string, string>): Launch {
