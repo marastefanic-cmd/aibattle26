@@ -83,9 +83,6 @@ h1,h2,h3{margin:0; text-wrap:balance}
 .back span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .ttl{flex:1; min-width:0; font:700 19px/1.1 var(--f-head); letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .ttl.brand{font:400 25px/1 var(--f-display); letter-spacing:.01em}
-.cp-chip{flex:none; display:flex; align-items:center; gap:7px; border:1px solid var(--line); background:var(--surface);
-  border-radius:12px; padding:7px 9px; font:700 15px/1 var(--f-head); letter-spacing:.04em; min-height:38px}
-.cp-chip .cp{background:var(--dakka); color:var(--dakka-ink); border-radius:6px; padding:3px 6px}
 .subbar{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:8px}
 .subbar::-webkit-scrollbar{display:none}
 .subbar button{flex:none; padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface);
@@ -191,8 +188,6 @@ summary::-webkit-details-marker{display:none}
 .st > span.n{text-align:left; padding-left:10px; font:600 13.5px/1.15 var(--f-body); display:flex; align-items:center}
 .st > span.inv{color:var(--accent)}
 .meta-lines{margin-top:8px; font-size:13.5px; color:var(--muted); line-height:1.4}
-.riled-note{margin-top:8px; padding:7px 10px; border-radius:10px; border:1px solid var(--accent); font-size:13.5px}
-.riled-note b{color:var(--accent)}
 /* weapon table: one line per weapon, keywords underneath in small caps */
 .wt{display:grid; align-items:stretch}
 .wt.ranged{grid-template-columns:minmax(0,1fr) 30px 38px 27px 26px 28px 36px}
@@ -265,42 +260,23 @@ summary::-webkit-details-marker{display:none}
 .ttable{display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin-top:8px; font-size:15px}
 .ttable span:nth-child(odd){font:700 16px var(--f-head); color:var(--dakka)}
 
-/* ---------- tracker ---------- */
-.gtiles{display:grid; grid-template-columns:1fr 1fr; gap:8px}
-.gtile{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:12px; display:grid; gap:10px}
-.gtile .big{font:700 54px/1 var(--f-head); text-align:center}
-.gtile.cp .big{color:var(--dakka)}
-.gtile .row{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+/* ---------- buttons ---------- */
 .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:0 14px; border-radius:11px;
   font:700 15px/1 var(--f-head); letter-spacing:.07em; text-transform:uppercase; background:var(--surface2); border:1px solid var(--line); text-align:center}
 .btn:active{filter:brightness(1.15)}
-.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
-.btn.danger{border-color:var(--choppa); color:var(--choppa)}
-.btn.danger.armed{background:var(--choppa); color:var(--bg)}
-.btnrow{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
-.reminder{display:flex; align-items:center; gap:10px; margin-top:8px; padding:10px 12px; border-radius:12px; border:1px dashed var(--dakka)}
-.reminder p{margin:0; flex:1; font-size:14.5px}
-.ticks{display:grid; gap:6px}
-.tick{display:grid; grid-template-columns:28px minmax(0,1fr); gap:10px; align-items:center; text-align:left; padding:8px 12px; line-height:1.3;
-  background:var(--surface); border:1px solid var(--line); border-radius:12px; width:100%}
-.tick .box{width:26px; height:26px; border-radius:7px; border:2px solid var(--muted); display:grid; place-items:center}
-.tick .box svg{width:16px; height:16px; opacity:0}
-.tick[aria-pressed="true"] .box{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
-.tick[aria-pressed="true"] .box svg{opacity:1}
-.tick[aria-pressed="true"] .tl{text-decoration:line-through; color:var(--muted)}
-.tick .tl{font:700 17px/1.15 var(--f-head); letter-spacing:.02em}
-.tick .ts{font-size:13px; color:var(--muted)}
-.riled{display:flex; flex-wrap:wrap; gap:6px}
-.riled button{padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--surface); font:700 14.5px/1 var(--f-head); letter-spacing:.04em}
-.riled button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
-.switch{display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px; border-radius:12px; background:var(--surface); border:1px solid var(--line); text-align:left}
-.switch .sw{width:46px; height:28px; border-radius:14px; background:var(--line); position:relative; flex:none; transition:background .15s}
-.switch .sw::after{content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--fg); transition:transform .15s}
-.switch[aria-pressed="true"] .sw{background:var(--accent)}
-.switch[aria-pressed="true"] .sw::after{transform:translateX(18px); background:var(--accent-ink)}
-.switch .rb{flex:1}
-.switch .rb b{display:block; font:700 17px/1.15 var(--f-head); letter-spacing:.03em}
-.switch .rb span{font-size:13px; color:var(--muted)}
+
+/* ---------- find anything ---------- */
+.finder{margin-top:14px}
+.finder .search{border-color:color-mix(in srgb, var(--accent) 40%, var(--line))}
+.rgroup{margin-top:14px}
+.rgroup h3{font:700 12.5px/1.2 var(--f-head); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); padding-bottom:4px; border-bottom:2px solid var(--line)}
+.res{display:grid; gap:1px; width:100%; text-align:left; padding:8px 2px; border-bottom:1px solid var(--line)}
+.res:active{background:var(--surface)}
+.res b{font:700 16.5px/1.2 var(--f-head); letter-spacing:.02em}
+.res span{font-size:13px; line-height:1.35; color:var(--muted)}
+.res .st1{font:700 13.5px/1.3 var(--f-head); letter-spacing:.03em; color:var(--fg); font-variant-numeric:tabular-nums}
+.res mark{background:none; color:var(--accent)}
+.more{font-size:13px; color:var(--muted); padding:8px 2px}
 
 /* ---------- sheet ---------- */
 .sheet-host{position:fixed; inset:0; z-index:60}
@@ -327,7 +303,6 @@ summary::-webkit-details-marker{display:none}
     <symbol id="i-blade" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14.5 3.5 20.5 3.5 20.5 9.5 9 21 3 15 14.5 3.5ZM7 12l5 5M4.5 19.5l-1 1"/></symbol>
     <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l2.2 6.3L21 12l-6.8 2.7L12 21l-2.2-6.3L3 12l6.8-2.7L12 3Z"/></symbol>
     <symbol id="i-book" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15ZM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></symbol>
-    <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
@@ -369,7 +344,7 @@ const store = {
   set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 };
 // preferences kept on this device
-const prefs = Object.assign({ phase:'all', turn:'all', folds:{}, wake:false }, store.get('wh-prefs', {}));
+const prefs = Object.assign({ phase:'all', turn:'all', folds:{} }, store.get('wh-prefs', {}));
 const savePrefs = () => store.set('wh-prefs', prefs);
 
 /* ---------- navigation ----------
@@ -380,7 +355,7 @@ const sameScreen = (a, b) => a && b && a.s === b.s && a.army === b.army && a.uni
 const plain = c => ({ s:c.s, army:c.army, unit:c.unit, d:c.d || 0 });
 function parentOf(c){
   if(c.s === 'unit') return { s:'units', army:c.army };
-  if(['units','strats','ranged','melee','abilities','rules','game'].includes(c.s)) return { s:'army', army:c.army };
+  if(['units','strats','ranged','melee','abilities','rules'].includes(c.s)) return { s:'army', army:c.army };
   return { s:'home' };
 }
 // mode: 'push' (default), 'replace' (same depth), 'sheet' (takes over a popup's entry)
@@ -484,10 +459,8 @@ function renderTop(){
     const p = parentOf(c);
     const label = p.s === 'home' ? 'Armies' : p.s === 'army' ? army().name : 'Units';
     left = '<button class="back" data-back><svg aria-hidden="true"><use href="#i-back"/></svg><span>' + esc(label) + '</span></button>';
-    const t = { army:'', units:'Units', strats:'Stratagems', ranged:'Ranged weapons', melee:'Melee weapons', abilities:'Abilities', rules:'Army rules', game:'Battle tracker', unit:(unitById(c.unit) || {}).name || '' }[c.s];
+    const t = { army:'', units:'Units', strats:'Stratagems', ranged:'Ranged weapons', melee:'Melee weapons', abilities:'Abilities', rules:'Army rules', unit:(unitById(c.unit) || {}).name || '' }[c.s];
     title = '<div class="ttl">' + esc(t) + '</div>';
-    const g = game();
-    if(c.s !== 'game') right = '<button class="cp-chip num" data-go="game" aria-label="Battle tracker: round ' + g.round + ', ' + g.cp + ' command points"><span>R' + g.round + '</span><span class="cp">' + g.cp + 'CP</span></button>';
   }
   $('#topIn').innerHTML = left + title + right;
 }
@@ -516,12 +489,13 @@ function screenHome(){
 
 /* ---------- screen: one army ---------- */
 function screenArmy(){
-  const a = army(), g = game();
+  const a = army();
   const usable = usableStrats(a), nDet = usable.filter(s => s.src !== 'Core').length;
   return '<div class="eyebrow">' + esc(faction().name + ' · ' + a.pointsUsed + ' / ' + a.points + ' pts · ' + a.battleSize) + '</div>' +
     '<h1 class="hero-h">' + esc(a.name) + '</h1>' +
     '<div class="pills" style="margin-top:12px">' + detachments().map(d => '<span class="pill">' + esc(d.name) + '</span>').join('') + '<span class="pill">' + esc(a.disposition) + '</span></div>' +
-    '<div class="big2">' +
+    '<div class="finder"><label class="search"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="armyQ" type="search" placeholder="Find a unit, weapon, keyword, rule\u2026" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Find anything in this army"></label><div id="qres"></div></div>' +
+    '<div id="armyMenu"><div class="big2">' +
       '<button class="bigbtn units" data-go="units"><svg class="bi" aria-hidden="true"><use href="#i-units"/></svg><span class="bt">Units</span><span class="bs">' + unitCount(a) + ' units · datasheets</span></button>' +
       '<button class="bigbtn strats" data-go="strats"><svg class="bi" aria-hidden="true"><use href="#i-cards"/></svg><span class="bt">Stratagems</span><span class="bs">' + nDet + ' detachment \u00b7 ' + (usable.length - nDet) + ' core</span></button>' +
     '</div>' +
@@ -532,9 +506,75 @@ function screenArmy(){
     '<div class="stack" style="margin-top:8px">' +
       '<button class="rowbtn" data-go="abilities"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg><span class="rb"><b>Abilities</b><span>Every unit ability, by unit</span></span>' + arrow + '</button>' +
       '<button class="rowbtn" data-go="rules"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="rb"><b>Army rules</b><span>Waaagh!, detachments, keyword glossary</span></span>' + arrow + '</button>' +
-      '<button class="rowbtn" data-go="game"><svg class="ic" aria-hidden="true"><use href="#i-dice"/></svg><span class="rb"><b>Battle tracker</b><span>Round ' + g.round + ' \u00b7 ' + g.cp + 'CP \u00b7 abilities used, riled up</span></span>' + arrow + '</button>' +
     '</div>' +
-    '<div class="dimnote">' + esc(a.source) + '</div>';
+    '<div class="dimnote">' + esc(a.source) + '</div></div>';
+}
+
+/* ---------- find anything: one search over every unit, weapon, ability, stratagem and rule ---------- */
+let armyQ = '';
+const KIND_ORDER = ['Units','Weapons','Stratagems','Abilities','Rules'];
+function wStat(w, kind){
+  const sk = kind === 'ranged' ? 'BS ' + w.BS : 'WS ' + w.WS;
+  return [kind === 'ranged' ? w.range : 'Melee', 'A ' + w.A, sk, 'S ' + w.S, 'AP ' + w.AP, 'D ' + w.D].join(' \u00b7 ');
+}
+function searchIndex(){
+  const a = army(), out = [];
+  const add = (kind, title, sub, hay, act, st1) => out.push({ kind, title, sub, st1, hay:(title + ' ' + hay).toLowerCase(), act });
+  for(const u of a.units){
+    add('Units', u.name, [u.role, u.pts + ' pts', u.enhancement, u.warlord ? 'Warlord' : '', u.leads ? 'leading ' + u.leads : ''].filter(Boolean).join(' \u00b7 '),
+      u.kw.join(' ') + ' ' + u.models.join(' ') + ' ' + (u.enhancement || ''), { unit:u.id, sec:'stats' });
+    for(const kind of ['ranged','melee']) for(const w of (u[kind] || [])){
+      const t = w.group ? w.group + ' \u2013 ' + w.name : w.name;
+      const kws = (w.hunter ? ['Hunter: Monster/Vehicle'] : []).concat(w.kw);
+      add('Weapons', t, u.name + (w.who && w.who !== u.name ? ' (' + w.who + ')' : '') + (kws.length ? ' \u00b7 ' + kws.join(', ') : ''),
+        kind + ' ' + kws.join(' ') + ' ' + u.name + ' ' + (w.who || ''), { unit:u.id, sec:kind }, wStat(w, kind));
+    }
+  }
+  const seen = new Map();
+  for(const u of a.units) for(const ab of u.abilities){
+    const key = ab.name + '|' + ab.text;
+    if(seen.has(key)){ seen.get(key).n++; continue; }
+    const e = { kind:'Abilities', title:ab.name, unitName:u.name, n:1, tag:ab.tag, hay:(ab.name + ' ' + ab.text + ' ' + u.name + ' ' + (ab.who || '')).toLowerCase().replace(/\*/g, ''), act:{ unit:u.id, sec:'abilities' } };
+    seen.set(key, e); out.push(e);
+  }
+  for(const e of seen.values()) e.sub = e.unitName + (e.n > 1 ? ' \u00d7' + e.n : '') + (e.tag ? ' \u00b7 ' + e.tag : '');
+  for(const st of usableStrats(a)) add('Stratagems', st.name, st.cp + 'CP \u00b7 ' + (st.src === 'Core' ? 'Core' : st.src) + ' \u00b7 ' + stratWhenLine(st),
+    [st.when, st.target, st.effect].join(' ').replace(/\*/g, ''), { strat:st.id });
+  for(const r of faction().armyRules) add('Rules', r.name, faction().name + ' army rule', r.text.replace(/\*/g, ''), { rule:r.name });
+  for(const d of detachments()) if(d.rule) add('Rules', d.rule.name, d.name + ' detachment rule', d.rule.text.replace(/\*/g, ''), { rule:d.rule.name });
+  for(const key of Object.keys(D.rules)) add('Rules', key, 'Core rule', D.rules[key].replace(/\*/g, ''), { rule:key });
+  return out;
+}
+function highlight(text, toks){
+  let h = esc(text);
+  for(const t of toks){ if(t.length < 2) continue; const re = new RegExp('(' + esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'); h = h.replace(re, '<mark>$1</mark>'); }
+  return h;
+}
+function renderFinder(){
+  const res = $('#qres'), menu = $('#armyMenu');
+  if(!res) return;
+  const q = armyQ.trim().toLowerCase();
+  menu.hidden = !!q;
+  if(!q){ res.innerHTML = ''; return; }
+  const toks = q.split(/\s+/).filter(Boolean);
+  const hits = searchIndex().filter(e => toks.every(t => e.hay.includes(t))).map(e => {
+    const tl = e.title.toLowerCase();
+    e.score = tl.startsWith(q) ? 0 : tl.includes(q) ? 1 : toks.every(t => tl.includes(t)) ? 2 : 3;
+    return e;
+  });
+  if(!hits.length){ res.innerHTML = '<div class="empty" style="margin-top:12px">Nothing in ' + esc(army().name) + ' matches \u201c' + esc(armyQ.trim()) + '\u201d.</div>'; return; }
+  const groups = KIND_ORDER.map(k => ({ k, list:hits.filter(e => e.kind === k).sort((x,y) => x.score - y.score) })).filter(g => g.list.length);
+  groups.sort((x,y) => x.list[0].score - y.list[0].score || KIND_ORDER.indexOf(x.k) - KIND_ORDER.indexOf(y.k));
+  const LIMIT = 8;
+  res.innerHTML = groups.map(g => '<div class="rgroup"><h3>' + g.k + ' \u00b7 ' + g.list.length + '</h3>' +
+    g.list.slice(0, LIMIT).map(e => {
+      const attrs = e.act.strat ? 'data-strat="' + esc(e.act.strat) + '"' : e.act.rule ? 'data-rule="' + esc(e.act.rule) + '"' : 'data-unit="' + esc(e.act.unit) + '" data-sec="' + e.act.sec + '"';
+      return '<button class="res" ' + attrs + '><b>' + highlight(e.title, toks) + '</b>' + (e.st1 ? '<span class="st1">' + esc(e.st1) + '</span>' : '') + '<span>' + esc(e.sub) + '</span></button>';
+    }).join('') + (g.list.length > LIMIT ? '<div class="more">and ' + (g.list.length - LIMIT) + ' more: add a word to narrow it down</div>' : '') + '</div>').join('');
+}
+function showStrat(id){
+  const st = allStratagems().find(x => x.id === id);
+  if(st) openSheet(stratCard(st, true));
 }
 
 /* ---------- screen: unit list ---------- */
@@ -547,14 +587,12 @@ function unitTags(u){
   const t = [];
   if(u.warlord) t.push('<span class="pill acc">Warlord</span>');
   if(u.enhancement) t.push('<span class="pill warn">' + esc(u.enhancement) + '</span>');
-  if(isRiled(u)) t.push('<span class="pill acc">Riled up</span>');
   return t;
 }
 function unitMeta(u){
   const bits = [];
   if(u.warlord) bits.push('<span class="tg acc">Warlord</span>');
   if(u.enhancement) bits.push('<span class="tg">' + esc(u.enhancement) + '</span>');
-  if(isRiled(u)) bits.push('<span class="tg acc">Riled up</span>');
   if(u.copies > 1) bits.push('×' + u.copies + ' units');
   const solo = u.models.length === 1 && /^1\u00d7 /.test(u.models[0]);
   if(u.leads) bits.push('Leading ' + esc(u.leads));
@@ -651,8 +689,7 @@ function screenUnit(){
       u.stats.map(s => (multi ? '<span class="n">' + esc(s.name) + '</span>' : '') + [s.M, s.T, s.Sv, s.W, s.Ld, s.OC, s.InSv].map((v,i) => '<span' + (i === 6 && v !== '\u2013' ? ' class="inv"' : '') + '>' + esc(v) + '</span>').join('')).join('') +
     '</div>' +
     '<div class="meta-lines">' + esc(u.models.join(' \u00b7 ')) + ' \u00b7 Base ' + u.stats.map(s => s.base).filter((v,i,a) => a.indexOf(v) === i).map(esc).join(' / ') +
-      (u.ptsNote ? ' \u00b7 ' + esc(u.ptsNote) + ' pts' : '') + (u.boostNote ? '<br><i>' + esc(u.boostNote) + '</i>' : '') + '</div>' +
-    (isRiled(u) ? '<div class="riled-note"><b>Riled up</b> (set in the battle tracker): 5+ InSv, ranged attacks have [ASSAULT], can charge after advancing.</div>' : '');
+      (u.ptsNote ? ' \u00b7 ' + esc(u.ptsNote) + ' pts' : '') + (u.boostNote ? '<br><i>' + esc(u.boostNote) + '</i>' : '') + '</div>';
 
   const abilBody = abilityList(u.abilities);
 
@@ -784,114 +821,28 @@ function rulesBody(){
     : '<div class="empty" style="margin-top:14px">Nothing matches “' + esc(ruleQ) + '”.</div>';
 }
 
-/* ---------- screen: battle tracker ---------- */
-function freshGame(){ return { round:1, cp:0, used:{}, roundUsed:{}, riled:{}, bossPrompt:false }; }
-let G = null;
-function game(){
-  const id = army().id;
-  if(!G || G._army !== id){ G = Object.assign(freshGame(), store.get('wh-game-' + id, {})); G._army = id; }
-  return G;
-}
-function saveGame(){ const g = Object.assign({}, G); delete g._army; store.set('wh-game-' + G._army, g); }
-function isRiled(u){ const g = game(); return Object.keys(g.riled).some(k => g.riled[k] && (k === u.id || k.startsWith(u.id + '#'))); }
-function trackables(kind){
-  const out = [];
-  for(const r of faction().armyRules) if(r.track === kind) out.push({ id:'army:' + r.name, name:r.name, sub:r.tag });
-  for(const u of army().units) for(const ab of u.abilities){
-    if(ab.track !== kind) continue;
-    const perArmy = /per army/i.test(ab.tag || '');
-    const id = perArmy ? 'ab:' + ab.name : 'ab:' + u.id + ':' + ab.name;
-    const e = out.find(x => x.id === id);
-    if(e){ e.who.push(u.name); continue; }
-    out.push({ id, name:ab.name, who:[u.name], sub:ab.tag });
-  }
-  // "Beastboss on Squigosaur ×2" rather than listing the same name twice
-  const names = w => [...new Set(w)].map(n => { const k = w.filter(x => x === n).length; return n + (k > 1 ? ' \u00d7' + k : ''); }).join(', ');
-  return out.map(x => Object.assign(x, { sub:(x.who ? names(x.who) + ' \u00b7 ' : '') + x.sub }));
-}
-const warlordHasDaBoss = () => { const w = army().units.find(u => u.warlord); return !!(w && w.rules.includes('Da Boss')); };
-function screenGame(){
-  const g = game();
-  const bat = trackables('battle'), rnd = trackables('round');
-  const riledUnits = [];
-  for(const u of army().units){
-    if(!u.rules.includes('Waaagh!')) continue;
-    const n = u.copies || 1;
-    for(let i = 1; i <= n; i++) riledUnits.push({ id:u.id + (n > 1 ? '#' + i : ''), label:shortName(u) + (n > 1 ? ' ' + i : '') });
-  }
-  const tick = (t, bag) => '<button class="tick" data-bag="' + bag + '" data-tick="' + esc(t.id) + '" aria-pressed="' + !!g[bag][t.id] + '"><span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>' +
-    '<span><span class="tl">' + esc(t.name) + '</span><br><span class="ts">' + esc(t.sub) + '</span></span></button>';
-  let h = '<div class="gtiles">' +
-      '<div class="gtile"><div class="eyebrow">Battle round</div><div class="big num">' + g.round + '</div><div class="row"><button class="btn" data-g="round-" aria-label="Previous round">−</button><button class="btn primary" data-g="round+">Next</button></div></div>' +
-      '<div class="gtile cp"><div class="eyebrow">Command points</div><div class="big num">' + g.cp + '</div><div class="row"><button class="btn" data-g="cp-" aria-label="Spend 1 CP">−</button><button class="btn" data-g="cp+" aria-label="Gain 1 CP">+</button></div></div>' +
-    '</div>' +
-    (g.bossPrompt && warlordHasDaBoss() ? '<div class="reminder"><p><b>Da Boss:</b> your Warlord gains you 1CP at the start of the battle round.</p><button class="btn primary" data-g="boss">+1CP</button></div>' : '');
-  if(bat.length) h += '<div class="sec-h"><h2>Once per battle</h2></div><div class="ticks">' + bat.map(t => tick(t, 'used')).join('') + '</div>';
-  if(rnd.length) h += '<div class="sec-h"><h2>Once per round</h2><span class="ct">Clears on Next</span></div><div class="ticks">' + rnd.map(t => tick(t, 'roundUsed')).join('') + '</div>';
-  if(riledUnits.length){
-    const nR = riledUnits.filter(r => g.riled[r.id]).length;
-    h += '<div class="sec-h"><h2>Riled up</h2><span class="ct">' + nR + ' of ' + riledUnits.length + '</span></div>' +
-      '<div class="riled">' + riledUnits.map(r => '<button data-riled="' + esc(r.id) + '" aria-pressed="' + !!g.riled[r.id] + '">' + esc(r.label) + '</button>').join('') + '</div>' +
-      '<div class="btnrow"><button class="btn" data-g="riled-all">All (War Cry)</button><button class="btn" data-g="riled-none">Clear all</button></div>' +
-      '<div class="dimnote">Riled up units get a badge on their datasheet. While riled up: 5+ InSv, ranged attacks have [ASSAULT], can charge after advancing.</div>';
-  }
-  h += '<div class="sec-h"><h2>At the table</h2></div><div class="stack">' +
-    ('wakeLock' in navigator ? '<button class="switch" data-wake aria-pressed="' + !!prefs.wake + '"><span class="rb"><b>Keep screen on</b><span>Stops the phone dimming while the app is open</span></span><span class="sw" aria-hidden="true"></span></button>' : '') +
-    '<button class="btn danger" id="resetGame">New game: reset round, CP and ticks</button></div>' +
-    '<div class="dimnote">Saved on this device only.</div>';
-  return h;
-}
-function gameAction(k){
-  const g = game();
-  if(k === 'round+'){ if(g.round >= 5){ toast('Round 5 is the last round'); return; } g.round++; g.roundUsed = {}; g.bossPrompt = true; toast('Battle round ' + g.round); }
-  if(k === 'round-'){ g.round = Math.max(1, g.round - 1); g.bossPrompt = false; }
-  if(k === 'cp+') g.cp++;
-  if(k === 'cp-') g.cp = Math.max(0, g.cp - 1);
-  if(k === 'boss'){ g.cp++; g.bossPrompt = false; toast('+1CP from Da Boss'); }
-  if(k === 'riled-all') $$('[data-riled]').forEach(b => g.riled[b.dataset.riled] = true);
-  if(k === 'riled-none') g.riled = {};
-  saveGame(); rerender();
-}
-
-/* ---------- keep the screen on ---------- */
-let wakeLock = null;
-async function applyWake(){
-  if(!('wakeLock' in navigator)) return;
-  try {
-    if(prefs.wake && document.visibilityState === 'visible' && !wakeLock){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
-    if(!prefs.wake && wakeLock){ await wakeLock.release(); wakeLock = null; }
-  } catch(e){ if(prefs.wake) toast('This browser won’t keep the screen on'); }
-}
-
 /* ---------- render ---------- */
 function render(){
   renderTop();
   setSubbar('');
   const v = $('#view'), s = cur.s;
   if(s === 'home') v.innerHTML = screenHome();
-  else if(s === 'army') v.innerHTML = screenArmy();
+  else if(s === 'army'){
+    v.innerHTML = screenArmy();
+    const i = $('#armyQ'); i.value = armyQ;
+    i.addEventListener('input', () => { armyQ = i.value; renderFinder(); });
+    i.addEventListener('keydown', e => { if(e.key === 'Enter') i.blur(); });
+    renderFinder();
+  }
   else if(s === 'units') v.innerHTML = screenUnits();
   else if(s === 'unit') v.innerHTML = screenUnit();
   else if(s === 'strats') v.innerHTML = screenStrats();
   else if(s === 'ranged' || s === 'melee') v.innerHTML = screenWeapons(s);
   else if(s === 'abilities') v.innerHTML = screenAbilities();
   else if(s === 'rules'){ v.innerHTML = screenRules(); const i = $('#ruleQ'); i.value = ruleQ; i.addEventListener('input', () => { ruleQ = i.value; rulesBody(); }); rulesBody(); }
-  else if(s === 'game') v.innerHTML = screenGame();
-  wireReset();
 }
 // re-render the same screen in place, keeping the scroll position
 function rerender(){ const y = scrollY; render(); scrollTo(0, y); }
-function wireReset(){
-  const r = $('#resetGame');
-  if(!r) return;
-  const label = r.textContent;
-  r.addEventListener('click', () => {
-    if(r.classList.contains('armed')){ G = Object.assign(freshGame(), { _army:army().id }); saveGame(); rerender(); toast('New game started'); return; }
-    r.classList.add('armed'); r.textContent = 'Tap again to reset';
-    setTimeout(() => { if(r.isConnected){ r.classList.remove('armed'); r.textContent = label; } }, 3500);
-  });
-}
-
 /* ---------- popup sheet ---------- */
 function openSheet(html){
   $('#sheet').innerHTML = '<div class="grab" aria-hidden="true"></div>' + html + '<button class="btn close" data-close>Close</button>';
@@ -916,6 +867,13 @@ let tt = null;
 function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
 
 /* ---------- events ---------- */
+function jumpTo(id, instant){
+  const sec = $('#sec-' + id);
+  if(!sec) return;
+  sec.open = true;
+  measureTop();
+  sec.scrollIntoView({ behavior: instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start' });
+}
 document.addEventListener('click', e => {
   const el = e.target.closest('button, [role="button"]');
   if(!el) return;
@@ -927,14 +885,12 @@ document.addEventListener('click', e => {
   if(el.dataset.unit){
     const next = { s:'unit', army:army().id, unit:el.dataset.unit };
     if(inSheet){ hideSheet(); go(next, 'sheet'); } else go(next);
+    if(el.dataset.sec && el.dataset.sec !== 'stats') jumpTo(el.dataset.sec, true);
     return;
   }
   if(el.dataset.rule){ e.preventDefault(); showRule(el.dataset.rule); return; }
-  if(el.dataset.jump){
-    const sec = $('#sec-' + el.dataset.jump);
-    if(sec){ sec.open = true; sec.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start' }); }
-    return;
-  }
+  if(el.dataset.strat){ showStrat(el.dataset.strat); return; }
+  if(el.dataset.jump){ jumpTo(el.dataset.jump); return; }
   if(el.dataset.phase){ prefs.phase = el.dataset.phase; savePrefs(); rerender(); return; }
   if(el.dataset.turn){ prefs.turn = el.dataset.turn; savePrefs(); rerender(); return; }
   if(el.hasAttribute('data-expand')){
@@ -944,10 +900,6 @@ document.addEventListener('click', e => {
     el.textContent = openAll ? 'Collapse all' : 'Expand all';
     return;
   }
-  if(el.dataset.g){ gameAction(el.dataset.g); return; }
-  if(el.dataset.tick){ const g = game(); const bag = g[el.dataset.bag === 'roundUsed' ? 'roundUsed' : 'used']; bag[el.dataset.tick] = !bag[el.dataset.tick]; saveGame(); rerender(); return; }
-  if(el.dataset.riled){ const g = game(); g.riled[el.dataset.riled] = !g.riled[el.dataset.riled]; saveGame(); rerender(); return; }
-  if(el.hasAttribute('data-wake')){ prefs.wake = !prefs.wake; savePrefs(); applyWake(); rerender(); return; }
 });
 // remember which datasheet sections are folded
 document.addEventListener('toggle', e => {
@@ -982,7 +934,7 @@ async function checkForUpdate(){
     }
   } catch(e){}
 }
-document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible'){ checkForUpdate(); applyWake(); } });
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') checkForUpdate(); });
 
 /* ---------- boot (also keeps your place across Claude artifact live updates) ---------- */
 function valid(c){
@@ -991,14 +943,13 @@ function valid(c){
   const a = D.armies.find(x => x.id === c.army);
   if(!a) return false;
   if(c.s === 'unit') return a.units.some(u => u.id === c.unit);
-  return ['army','units','strats','ranged','melee','abilities','rules','game'].includes(c.s);
+  return ['army','units','strats','ranged','melee','abilities','rules'].includes(c.s);
 }
 function start(snap){
   const last = store.get('wh-last');
   const target = snap && valid(snap.cur) ? snap.cur : valid(last) ? last : { s:'home' };
   restore({ s:target.s, army:target.army, unit:target.unit });
   if(snap && snap.y) scrollTo(0, snap.y);
-  applyWake();
   checkForUpdate();
 }
 const hot = window.claude && window.claude.hot;

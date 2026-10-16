@@ -1,8 +1,7 @@
 # Waaagh Codex
 
-A phone-first Warhammer 40,000 (11th edition) army companion. Pick an army, then
-Units, Stratagems, Ranged/Melee weapons by unit, Abilities, Army rules, or the
-Battle tracker.
+A phone-first Warhammer 40,000 (11th edition) army reference sheet. Pick an army, then
+search it, or open Units, Stratagems, Ranged/Melee weapons by unit, Abilities or Army rules.
 
 | File | What it is |
 |---|---|

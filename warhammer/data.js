@@ -12,7 +12,7 @@
 ===================================================================== */
 window.WH_DATA = (function(){
 
-const VERSION = '2026-10-16.1';
+const VERSION = '2026-10-16.2';
 
 /* ---------------- core rules (11th edition) ---------------- */
 // Weapon keyword and core ability text, from the BSData wh40k-11e game system.

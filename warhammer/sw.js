@@ -1,7 +1,7 @@
 // Service worker for the installed (home screen) copy.
 // Network first for everything of our own, so an update shows up the next time
 // the app opens; the cache is only the offline fallback for a basement game table.
-const VERSION = '2026-10-16.1';
+const VERSION = '2026-10-16.2';
 const CACHE = 'waaagh-codex';
 const CORE = ['./', 'index.html', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'icon-180.png', 'icon-512.png'];
 
