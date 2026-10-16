@@ -913,7 +913,7 @@ addEventListener('resize', measureTop);
 /* ---------- install + live updates ---------- */
 const INSTALLED = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const ON_SITE = /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
-const SITE_URL = 'https://marastefanic-cmd.github.io/aibattle26/warhammer/';
+const SITE_URL = 'https://marastefanic-cmd.github.io/warhammerapp/';
 function installText(){
   if(INSTALLED) return 'Installed on this phone. It updates itself each time you open it.';
   if(ON_SITE) return 'Put it on your home screen: Safari → Share → Add to Home Screen (Chrome: menu → Add to Home screen).';
