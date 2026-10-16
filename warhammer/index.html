@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Waaagh Codex</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#121611">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Waaagh Codex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Black+Ops+One&display=swap">
+<style>
+/* Layout: a drill-down phone app. Armies -> army -> Units | Stratagems -> datasheet.
+   Sticky nav bar with a back button over a checkered Goff band; every screen is one
+   scrolling column; datasheet sections fold open and closed. */
+:root{
+  color-scheme: dark;
+  --bg:#121611;        /* gunmetal with a green cast */
+  --surface:#1a2019;
+  --surface2:#232b22;
+  --line:#303b2e;
+  --fg:#e9eee4;
+  --muted:#9ba796;
+  --accent:#8fc441;    /* waaagh green */
+  --accent-ink:#0f1a06;
+  --dakka:#f0bf3a;     /* bad moons yellow: CP, ranged */
+  --dakka-ink:#231a00;
+  --choppa:#ea6a50;    /* evil sunz red: melee */
+  --check-a:#e9eee4; --check-b:#121611;
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --f-display:'Black Ops One', 'Barlow Condensed', Impact, sans-serif;
+  --f-head:'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --f-body:'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --hdr:64px;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme: light;
+    --bg:#edf0e8; --surface:#ffffff; --surface2:#f1f4ed; --line:#d3d9cc;
+    --fg:#151a13; --muted:#5a6555; --accent:#4c7c12; --accent-ink:#ffffff;
+    --dakka:#a77300; --dakka-ink:#ffffff; --choppa:#b8381f;
+    --check-a:#151a13; --check-b:#edf0e8; --shadow:0 10px 30px rgba(20,30,10,.18);
+  }
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --bg:#edf0e8; --surface:#ffffff; --surface2:#f1f4ed; --line:#d3d9cc;
+  --fg:#151a13; --muted:#5a6555; --accent:#4c7c12; --accent-ink:#ffffff;
+  --dakka:#a77300; --dakka-ink:#ffffff; --choppa:#b8381f;
+  --check-a:#151a13; --check-b:#edf0e8; --shadow:0 10px 30px rgba(20,30,10,.18);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--fg);
+  font:16px/1.45 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom:calc(36px + env(safe-area-inset-bottom, 0px));
+  -webkit-tap-highlight-color:transparent;
+  -webkit-text-size-adjust:100%;
+}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top, 0px); z-index:30; background:var(--bg)}
+button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; text-align:inherit}
+input{font:inherit; color:var(--fg)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px}
+b{font-weight:700}
+.wrap{max-width:720px; margin:0 auto}
+h1,h2,h3{margin:0; text-wrap:balance}
+.num{font-variant-numeric:tabular-nums}
+.bleed{margin-left:calc(-1 * max(16px, env(safe-area-inset-left, 0px))); margin-right:calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px))}
+
+/* ---------- nav bar ---------- */
+.top{position:sticky; top:env(safe-area-inset-top, 0px); z-index:20; background:var(--bg)}
+.top-in{max-width:720px; margin:0 auto; display:flex; align-items:center; gap:10px; min-height:56px; padding:6px 0}
+.back{flex:none; display:flex; align-items:center; gap:2px; min-height:44px; padding-right:6px; color:var(--accent);
+  font:700 16px/1 var(--f-head); letter-spacing:.06em; text-transform:uppercase; max-width:46%}
+.back svg{width:22px; height:22px; flex:none; margin-left:-4px}
+.back span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ttl{flex:1; min-width:0; font:700 19px/1.1 var(--f-head); letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ttl.brand{font:400 25px/1 var(--f-display); letter-spacing:.01em}
+.cp-chip{flex:none; display:flex; align-items:center; gap:7px; border:1px solid var(--line); background:var(--surface);
+  border-radius:12px; padding:7px 9px; font:700 15px/1 var(--f-head); letter-spacing:.04em; min-height:38px}
+.cp-chip .cp{background:var(--dakka); color:var(--dakka-ink); border-radius:6px; padding:3px 6px}
+.subbar{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:8px}
+.subbar::-webkit-scrollbar{display:none}
+.subbar button{flex:none; padding:8px 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface);
+  font:700 13.5px/1 var(--f-head); letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.checks{height:8px; background:repeating-conic-gradient(var(--check-a) 0 25%, var(--check-b) 0 50%) 0 0/8px 8px; opacity:.85}
+
+/* ---------- generic ---------- */
+.view{padding-top:14px}
+.eyebrow{font:700 12.5px/1.2 var(--f-head); letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+.sec-h{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:18px 0 6px}
+.sec-h h2{font:700 20px/1.1 var(--f-head); letter-spacing:.04em; text-transform:uppercase}
+.sec-h .ct{font:600 13px var(--f-head); color:var(--muted); letter-spacing:.06em}
+.pill{display:inline-flex; align-items:center; gap:5px; font:700 12px/1 var(--f-head); letter-spacing:.07em; text-transform:uppercase;
+  border-radius:999px; padding:5px 9px; border:1px solid var(--line); color:var(--muted); white-space:nowrap}
+.pill.acc{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.pill.warn{border-color:var(--dakka); color:var(--dakka)}
+.pills{display:flex; flex-wrap:wrap; gap:6px}
+.muted{color:var(--muted)}
+.rt p{margin:0 0 6px} .rt p:last-child{margin-bottom:0}
+.rt ul{margin:2px 0 6px; padding-left:20px} .rt li{margin:2px 0}
+.rt .note{font-style:italic; color:var(--muted)}
+.empty{padding:24px 16px; text-align:center; color:var(--muted); background:var(--surface); border:1px solid var(--line); border-radius:14px}
+.dimnote{font-size:13.5px; color:var(--muted); margin-top:10px}
+.stack{display:grid; gap:6px}
+.chev{width:20px; height:20px; flex:none; color:var(--muted); transition:transform .18s ease}
+details[open] > summary .chev{transform:rotate(180deg)}
+summary{list-style:none; cursor:pointer}
+summary::-webkit-details-marker{display:none}
+
+/* ---------- home: army cards ---------- */
+.hero-h{font:400 34px/1.02 var(--f-display); letter-spacing:.01em; margin-top:6px}
+.acard{display:grid; gap:6px; width:100%; padding:16px; background:var(--surface); border:1px solid var(--line); border-radius:16px; position:relative; overflow:hidden}
+.acard:active{background:var(--surface2)}
+.acard .an{font:400 30px/1 var(--f-display); letter-spacing:.01em; padding-right:30px}
+.acard .af{font:700 14px/1.2 var(--f-head); letter-spacing:.1em; text-transform:uppercase; color:var(--accent)}
+.acard .am{font-size:14px; color:var(--muted)}
+.acard .go{position:absolute; right:14px; top:18px; width:22px; height:22px; color:var(--muted); transform:rotate(-90deg)}
+.howto{margin-top:22px; font-size:14px; color:var(--muted); display:grid; gap:8px}
+.howto a{color:var(--accent)}
+
+/* ---------- army screen ---------- */
+.big2{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px}
+.midbtn{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; background:var(--surface); border:1px solid var(--line); text-align:left; min-width:0}
+.midbtn:active{background:var(--surface2)}
+.midbtn .bi{width:26px; height:26px; flex:none}
+.midbtn span{display:grid; gap:2px; min-width:0}
+.midbtn b{font:700 20px/1 var(--f-head); letter-spacing:.04em; text-transform:uppercase}
+.midbtn small{font-size:12.5px; color:var(--muted)}
+.midbtn.ranged .bi{color:var(--dakka)} .midbtn.melee .bi{color:var(--choppa)}
+
+.bigbtn{display:grid; gap:6px; align-content:end; min-height:116px; padding:14px; border-radius:16px; background:var(--surface); border:1px solid var(--line); text-align:left; position:relative; overflow:hidden}
+.bigbtn:active{background:var(--surface2)}
+.bigbtn .bt{font:700 27px/1 var(--f-head); letter-spacing:.04em; text-transform:uppercase}
+.bigbtn .bs{font-size:13.5px; color:var(--muted)}
+.bigbtn .bi{position:absolute; top:12px; left:14px; width:28px; height:28px}
+.bigbtn.units .bi{color:var(--accent)} .bigbtn.strats .bi{color:var(--dakka)}
+.rowbtn{display:flex; align-items:center; gap:12px; width:100%; padding:14px; border-radius:14px; background:var(--surface); border:1px solid var(--line); text-align:left}
+.rowbtn:active{background:var(--surface2)}
+.rowbtn svg.ic{width:24px; height:24px; flex:none; color:var(--muted)}
+.rowbtn .rb{flex:1; min-width:0}
+.rowbtn .rb b{display:block; font:700 18px/1.1 var(--f-head); letter-spacing:.04em; text-transform:uppercase}
+.rowbtn .rb span{font-size:13.5px; color:var(--muted)}
+.rowbtn .go{width:20px; height:20px; flex:none; color:var(--muted); transform:rotate(-90deg)}
+
+/* ---------- slices: weapons / abilities by unit ---------- */
+.uh{display:flex; align-items:baseline; gap:8px; width:100%; text-align:left; padding:16px 0 4px; border-bottom:2px solid var(--line)}
+.uh:first-child{padding-top:4px}
+.uh b{font:700 18px/1.15 var(--f-head); letter-spacing:.02em}
+.uh span{flex:1; min-width:0; font-size:12.5px; color:var(--muted)}
+.uh .tg{color:var(--dakka)}
+.uh svg{width:18px; height:18px; color:var(--accent); transform:rotate(-90deg); flex:none; align-self:center}
+.slice .wt{margin-top:4px}
+.slice .al{margin-top:8px}
+
+/* ---------- unit list ---------- */
+.ulist{display:grid; border-top:1px solid var(--line)}
+.urow{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1px 12px; align-items:baseline; width:100%; text-align:left;
+  padding:9px 2px; border-bottom:1px solid var(--line)}
+.urow:active{background:var(--surface)}
+.urow .nm{font:700 18px/1.15 var(--f-head); letter-spacing:.02em}
+.urow .pts{font:700 16px/1 var(--f-head); text-align:right; color:var(--muted)}
+.urow .meta{grid-column:1 / -1; font-size:13px; color:var(--muted); line-height:1.35}
+.urow .meta .tg{color:var(--dakka); font-weight:600}
+.urow .meta .tg.acc{color:var(--accent)}
+.sline{grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:0 12px; margin-top:3px; font:700 15px/1.3 var(--f-head)}
+.sline i{font-style:normal; font-weight:600; font-size:11px; letter-spacing:.1em; color:var(--muted); margin-right:3px}
+.sline .inv{color:var(--accent)}
+
+/* ---------- datasheet ---------- */
+.ds-hero h1{font:400 27px/1.05 var(--f-display); letter-spacing:.01em; margin:4px 0 8px}
+.fold{border-top:1px solid var(--line); scroll-margin-top:calc(var(--hdr) + env(safe-area-inset-top, 0px) + 4px)}
+.fold:first-of-type{margin-top:12px}
+.fold > summary{display:flex; align-items:center; gap:8px; padding:10px 0 8px; min-height:44px}
+.fold > summary h2{flex:1; font:700 17px/1 var(--f-head); letter-spacing:.07em; text-transform:uppercase}
+.fold > summary .ct{font:600 12.5px var(--f-head); color:var(--muted); letter-spacing:.06em}
+.fold > summary .dot{width:9px; height:9px; border-radius:2px; transform:rotate(45deg); flex:none}
+.dot.stats{background:var(--fg)} .dot.ranged{background:var(--dakka)} .dot.melee{background:var(--choppa)} .dot.abil{background:var(--accent)} .dot.rules{border:2px solid var(--accent)} .dot.kw{border:2px solid var(--muted)}
+.fold > .body{padding-bottom:12px}
+/* stat table: one row per model profile */
+.st{display:grid; align-items:stretch; background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.st > span{text-align:center; padding:6px 0; font:700 19px/1 var(--f-head); border-top:1px solid var(--line); min-width:0}
+.st > span.h{font:600 10.5px/1 var(--f-head); letter-spacing:.12em; color:var(--muted); border-top:0; padding:7px 0 5px; background:var(--surface2)}
+.st > span.n{text-align:left; padding-left:10px; font:600 13.5px/1.15 var(--f-body); display:flex; align-items:center}
+.st > span.inv{color:var(--accent)}
+.meta-lines{margin-top:8px; font-size:13.5px; color:var(--muted); line-height:1.4}
+.riled-note{margin-top:8px; padding:7px 10px; border-radius:10px; border:1px solid var(--accent); font-size:13.5px}
+.riled-note b{color:var(--accent)}
+/* weapon table: one line per weapon, keywords underneath in small caps */
+.wt{display:grid; align-items:stretch}
+.wt.ranged{grid-template-columns:minmax(0,1fr) 30px 38px 27px 26px 28px 36px}
+.wt.melee{grid-template-columns:minmax(0,1fr) 38px 27px 26px 28px 36px}
+.wt > span{font:700 16px/1.2 var(--f-head); text-align:center; padding:6px 0 5px; border-top:1px solid var(--line); min-width:0; font-variant-numeric:tabular-nums}
+.wt > span.h{font:600 10.5px/1 var(--f-head); letter-spacing:.12em; color:var(--muted); border-top:0; padding:2px 0 6px}
+.wt > span.h.n{text-align:left}
+.wt > span.n{text-align:left; padding-right:6px; font:600 15px/1.2 var(--f-head); letter-spacing:.01em}
+.wt > span.h.n{font:600 10.5px/1 var(--f-head); letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+.wt > span.grp{grid-column:1 / -1; text-align:left; font:600 14.5px/1.2 var(--f-head); padding:7px 0 0; color:var(--fg)}
+.wt > span.grp small{font:500 12px var(--f-body); color:var(--muted); margin-left:6px}
+.wt > span.sub{border-top:0}
+.wt > span.n.sub{padding-left:2px}
+.wt > span.n .x{color:var(--muted); font-weight:600; font-size:13px; margin-left:4px; white-space:nowrap}
+.wt > span.n .enh{color:var(--dakka); font-size:11px; letter-spacing:.08em; margin-left:4px}
+.wt > span.who{grid-column:1 / -1; text-align:left; font:700 11.5px/1 var(--f-head); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); padding:9px 0 5px}
+.wt > span.kwl{grid-column:1 / -1; text-align:left; border-top:0; padding:0 0 6px; margin-top:-2px; line-height:1.3}
+.kwl [data-rule]{cursor:pointer; white-space:nowrap; font:700 11px/1.35 var(--f-head); letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:0; text-decoration:underline dotted; text-decoration-color:var(--muted); text-underline-offset:2px}
+.wt.ranged .kwl [data-rule]{color:color-mix(in srgb, var(--dakka) 80%, var(--fg))}
+.wt.melee .kwl [data-rule]{color:color-mix(in srgb, var(--choppa) 85%, var(--fg))}
+.kwl .sep{color:var(--muted); font-size:11px}
+/* abilities: a divided list, no boxes */
+.al > div{padding:8px 0; border-top:1px solid var(--line)}
+.al > div:first-child{border-top:0; padding-top:0}
+.al .ah{display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; margin-bottom:2px}
+.al .ah b{font:700 16px/1.2 var(--f-head); letter-spacing:.02em}
+.al .ah .who, .al .ah .tg{font-size:12.5px; color:var(--muted)}
+.al .ah .tg.enh{color:var(--dakka)}
+.al .rt{font-size:14.5px; line-height:1.4}
+.chips{display:flex; flex-wrap:wrap; gap:5px}
+.kw{display:inline-flex; align-items:center; gap:5px; font:700 12.5px/1 var(--f-head); letter-spacing:.06em; text-transform:uppercase; padding:8px 9px; border-radius:8px;
+  border:1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); background:var(--surface); color:var(--fg); text-align:left}
+.kw:active{background:var(--surface2)}
+.xp{background:var(--surface); border:1px solid var(--line); border-radius:12px}
+.xp > summary{display:flex; align-items:center; gap:10px; padding:10px 12px; min-height:44px}
+.xp > summary b{flex:1; min-width:0; font:700 16.5px/1.15 var(--f-head); letter-spacing:.02em}
+.xp > .body{padding:0 12px 11px; font-size:14.5px}
+.kwline{font-size:14px; line-height:1.5; color:var(--muted)}
+.ulink{font:700 12.5px/1 var(--f-head); letter-spacing:.06em; text-transform:uppercase; padding:8px 10px; border-radius:8px; background:var(--surface2); color:var(--fg)}
+
+/* ---------- stratagems ---------- */
+.seg{display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:4px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:4px}
+.seg button{padding:10px 4px; border-radius:9px; font:700 14.5px/1 var(--f-head); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); text-align:center}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink)}
+.phasebar{display:flex; gap:6px; overflow-x:auto; padding:10px 0 2px; scrollbar-width:none}
+.phasebar::-webkit-scrollbar{display:none}
+.phasebar button{flex:none; padding:9px 13px; border-radius:999px; border:1px solid var(--line); background:var(--surface);
+  font:700 14px/1 var(--f-head); letter-spacing:.07em; text-transform:uppercase; color:var(--muted)}
+.phasebar button[aria-pressed="true"]{border-color:var(--fg); color:var(--fg); background:var(--surface2)}
+.strat{background:var(--surface); border:1px solid var(--line); border-radius:12px}
+.strat > summary{display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 10px}
+.cpbox{width:38px; height:38px; border-radius:9px; background:var(--dakka); color:var(--dakka-ink); display:grid; place-content:center; text-align:center;
+  font:700 19px/1 var(--f-head)}
+.cpbox small{display:block; font-size:8.5px; letter-spacing:.1em; margin-top:1px}
+.strat .sn{font:700 16.5px/1.1 var(--f-head); letter-spacing:.02em; text-transform:uppercase}
+.strat .src{font-size:12.5px; color:var(--muted); margin-top:2px}
+.strat .body{padding:0 12px 12px; font-size:14.5px}
+.strat dl{margin:0; display:grid; grid-template-columns:auto minmax(0,1fr); gap:7px 10px; border-top:1px solid var(--line); padding-top:10px}
+.strat dt{font:700 11.5px/1.7 var(--f-head); letter-spacing:.12em; color:var(--muted); text-transform:uppercase}
+.strat dd{margin:0; min-width:0}
+.strat .units{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.strat .units .eyebrow{width:100%; margin-bottom:2px}
+.toolrow{display:flex; justify-content:flex-end; margin-top:6px}
+.linkbtn{font:700 13px/1 var(--f-head); letter-spacing:.08em; text-transform:uppercase; color:var(--accent); padding:10px 0}
+
+/* ---------- rules ---------- */
+.search{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:0 12px}
+.search svg{width:18px; height:18px; color:var(--muted); flex:none}
+.search input{flex:1; min-width:0; border:0; background:none; padding:12px 0; outline:none}
+.ttable{display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin-top:8px; font-size:15px}
+.ttable span:nth-child(odd){font:700 16px var(--f-head); color:var(--dakka)}
+
+/* ---------- tracker ---------- */
+.gtiles{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.gtile{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:12px; display:grid; gap:10px}
+.gtile .big{font:700 54px/1 var(--f-head); text-align:center}
+.gtile.cp .big{color:var(--dakka)}
+.gtile .row{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:0 14px; border-radius:11px;
+  font:700 15px/1 var(--f-head); letter-spacing:.07em; text-transform:uppercase; background:var(--surface2); border:1px solid var(--line); text-align:center}
+.btn:active{filter:brightness(1.15)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.btn.danger{border-color:var(--choppa); color:var(--choppa)}
+.btn.danger.armed{background:var(--choppa); color:var(--bg)}
+.btnrow{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.reminder{display:flex; align-items:center; gap:10px; margin-top:8px; padding:10px 12px; border-radius:12px; border:1px dashed var(--dakka)}
+.reminder p{margin:0; flex:1; font-size:14.5px}
+.ticks{display:grid; gap:6px}
+.tick{display:grid; grid-template-columns:28px minmax(0,1fr); gap:10px; align-items:center; text-align:left; padding:8px 12px; line-height:1.3;
+  background:var(--surface); border:1px solid var(--line); border-radius:12px; width:100%}
+.tick .box{width:26px; height:26px; border-radius:7px; border:2px solid var(--muted); display:grid; place-items:center}
+.tick .box svg{width:16px; height:16px; opacity:0}
+.tick[aria-pressed="true"] .box{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.tick[aria-pressed="true"] .box svg{opacity:1}
+.tick[aria-pressed="true"] .tl{text-decoration:line-through; color:var(--muted)}
+.tick .tl{font:700 17px/1.15 var(--f-head); letter-spacing:.02em}
+.tick .ts{font-size:13px; color:var(--muted)}
+.riled{display:flex; flex-wrap:wrap; gap:6px}
+.riled button{padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--surface); font:700 14.5px/1 var(--f-head); letter-spacing:.04em}
+.riled button[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.switch{display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px; border-radius:12px; background:var(--surface); border:1px solid var(--line); text-align:left}
+.switch .sw{width:46px; height:28px; border-radius:14px; background:var(--line); position:relative; flex:none; transition:background .15s}
+.switch .sw::after{content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--fg); transition:transform .15s}
+.switch[aria-pressed="true"] .sw{background:var(--accent)}
+.switch[aria-pressed="true"] .sw::after{transform:translateX(18px); background:var(--accent-ink)}
+.switch .rb{flex:1}
+.switch .rb b{display:block; font:700 17px/1.15 var(--f-head); letter-spacing:.03em}
+.switch .rb span{font-size:13px; color:var(--muted)}
+
+/* ---------- sheet ---------- */
+.sheet-host{position:fixed; inset:0; z-index:60}
+.sheet-back{position:absolute; inset:0; background:rgba(0,0,0,.5)}
+.sheet{position:absolute; left:0; right:0; bottom:0; max-height:82%; overflow:auto; overscroll-behavior:contain; background:var(--surface);
+  border-radius:18px 18px 0 0; box-shadow:var(--shadow);
+  padding:8px max(18px, env(safe-area-inset-right, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px))}
+.sheet .grab{width:40px; height:4px; border-radius:2px; background:var(--line); margin:4px auto 12px}
+.sheet h2{font:700 24px/1.1 var(--f-head); letter-spacing:.02em; text-transform:uppercase; margin:6px 0 10px}
+.sheet .close{display:flex; width:100%; margin-top:16px}
+@media (min-width:700px){ .sheet{left:50%; right:auto; width:620px; transform:translateX(-50%); bottom:24px; border-radius:18px} }
+
+.toast{position:fixed; left:50%; bottom:calc(28px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); z-index:70; background:var(--fg); color:var(--bg);
+  font:700 15px/1.2 var(--f-head); letter-spacing:.04em; padding:10px 16px; border-radius:12px; opacity:0; pointer-events:none; transition:opacity .2s; max-width:86%; text-align:center}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-units" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Zm0 0v18M4 7.5l8 4.5 8-4.5"/></symbol>
+    <symbol id="i-cards" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 8h6M9 12h6M9 16h3"/></symbol>
+    <symbol id="i-gun" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 9h15l3-2v5l-3-1H10l-2 6H5l1-6H3V9Zm7 2v2"/></symbol>
+    <symbol id="i-blade" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14.5 3.5 20.5 3.5 20.5 9.5 9 21 3 15 14.5 3.5ZM7 12l5 5M4.5 19.5l-1 1"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l2.2 6.3L21 12l-6.8 2.7L12 21l-2.2-6.3L3 12l6.8-2.7L12 3Z"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15ZM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></symbol>
+    <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  </defs>
+</svg>
+
+<header class="top bleed" id="top">
+  <div class="top-in" id="topIn"></div>
+  <div class="wrap"><div class="subbar" id="subbar" hidden></div></div>
+  <div class="checks bleed" aria-hidden="true"></div>
+</header>
+
+<main class="wrap view" id="view"></main>
+
+<div class="sheet-host" id="sheetHost" hidden>
+  <div class="sheet-back" id="sheetBack"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="data.js?v=2026-10-16.1"></script>
+<script>
+'use strict';
+const D = window.WH_DATA;
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PHASES = [['all','All'],['command','Command'],['movement','Movement'],['shooting','Shooting'],['charge','Charge'],['fight','Fight']];
+const TURNS = [['all','Any turn'],['your','Your turn'],['opp','Their turn']];
+const ROLE_ORDER = ['Epic Hero','Character','Battleline','Infantry','Mounted','Monster','Vehicle','Other'];
+const ROLE_LABEL = {'Epic Hero':'Epic Heroes','Character':'Characters','Battleline':'Battleline','Infantry':'Infantry','Mounted':'Mounted','Monster':'Monsters','Vehicle':'Vehicles','Other':'Other'};
+const chev = '<svg class="chev" aria-hidden="true"><use href="#i-down"/></svg>';
+const arrow = '<svg class="go" aria-hidden="true"><use href="#i-down"/></svg>';
+
+/* ---------- storage ---------- */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+// preferences kept on this device
+const prefs = Object.assign({ phase:'all', turn:'all', folds:{}, wake:false }, store.get('wh-prefs', {}));
+const savePrefs = () => store.set('wh-prefs', prefs);
+
+/* ---------- navigation ----------
+   A screen is { s, army?, unit?, d }. d is its depth in the picker; every step
+   forward is a history entry, so the phone's back gesture walks back up.       */
+let cur = { s:'home', d:0 };
+const sameScreen = (a, b) => a && b && a.s === b.s && a.army === b.army && a.unit === b.unit;
+const plain = c => ({ s:c.s, army:c.army, unit:c.unit, d:c.d || 0 });
+function parentOf(c){
+  if(c.s === 'unit') return { s:'units', army:c.army };
+  if(['units','strats','ranged','melee','abilities','rules','game'].includes(c.s)) return { s:'army', army:c.army };
+  return { s:'home' };
+}
+// mode: 'push' (default), 'replace' (same depth), 'sheet' (takes over a popup's entry)
+function go(next, mode){
+  if(mode !== 'sheet'){ try { history.replaceState(Object.assign(plain(cur), { y:scrollY }), ''); } catch(e){} }
+  const d = mode === 'replace' ? (cur.d || 0) : (cur.d || 0) + 1;
+  cur = Object.assign(plain(next), { d });
+  try { mode ? history.replaceState(plain(cur), '') : history.pushState(plain(cur), ''); } catch(e){}
+  render(); scrollTo(0, 0); remember();
+}
+function back(){
+  if((cur.d || 0) > 0 && history.state && history.state.d === cur.d){ history.back(); return; }
+  go(parentOf(cur), 'replace');
+}
+addEventListener('popstate', e => {
+  const st = e.state || { s:'home', d:0 };
+  if(!st.sheet) hideSheet(); else return;
+  if(sameScreen(st, cur)){ cur.d = st.d || 0; return; }   // only a popup closed
+  cur = plain(st);
+  render(); scrollTo(0, st.y || 0); remember();
+});
+const remember = () => store.set('wh-last', plain(cur));
+// rebuild the history chain for a screen, so Back works after reopening the app
+function restore(target){
+  const chain = [];
+  for(let c = target; c; c = c.s === 'home' ? null : parentOf(c)) chain.unshift(c);
+  chain.forEach((c, i) => c.d = i);
+  try { history.replaceState(plain(chain[0]), ''); for(const c of chain.slice(1)) history.pushState(plain(c), ''); } catch(e){}
+  cur = plain(chain[chain.length - 1]);
+  render();
+}
+
+/* ---------- army helpers ---------- */
+const army = () => D.armies.find(a => a.id === cur.army) || D.armies[0];
+const factionOf = a => D.factions[a.faction];
+const faction = () => factionOf(army());
+const detachmentsOf = a => a.detachments.map(id => Object.assign({ id }, factionOf(a).detachments[id])).filter(d => d.name);
+const detachments = () => detachmentsOf(army());
+const unitById = id => army().units.find(u => u.id === id);
+const hasKw = (u, k) => u.kw.some(x => x.toLowerCase() === k.toLowerCase());
+function eligible(s, a){
+  const n = s.needs;
+  return (a || army()).units.filter(u => {
+    if(!n) return true;
+    if(n.all && !n.all.every(k => hasKw(u, k))) return false;
+    if(n.any && !n.any.some(k => hasKw(u, k))) return false;
+    if(n.none && n.none.some(k => hasKw(u, k))) return false;
+    return true;
+  });
+}
+function allStratagems(a){
+  a = a || army();
+  const out = [];
+  for(const d of detachmentsOf(a)) for(const s of d.stratagems) out.push(Object.assign({ src:d.name }, s));
+  for(const s of D.coreStratagems) out.push(Object.assign({ src:'Core' }, s));
+  return out;
+}
+const usableStrats = a => allStratagems(a).filter(s => eligible(s, a).length);
+const shortName = u => u.enhancement ? u.name.replace(/ on Squigosaur| Dakkarig/, '') + ' · ' + u.enhancement : u.name;
+const unitCount = a => a.units.reduce((t,u) => t + (u.copies || 1), 0);
+
+/* ---------- rich text ---------- */
+const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+function rt(text){
+  const lines = String(text || '').split('\n');
+  let html = '', list = [];
+  const flush = () => { if(list.length){ html += '<ul>' + list.map(l => '<li>' + inline(l) + '</li>').join('') + '</ul>'; list = []; } };
+  for(const raw of lines){
+    const l = raw.trim();
+    if(!l) continue;
+    if(l.startsWith('- ')){ list.push(l.slice(2)); continue; }
+    flush();
+    if(/^\*[^*].*\*$/.test(l)) html += '<p class="note">' + inline(l.slice(1,-1)) + '</p>';
+    else html += '<p>' + inline(l) + '</p>';
+  }
+  flush();
+  return '<div class="rt">' + html + '</div>';
+}
+const ttable = t => '<div class="ttable">' + t.map(([k,v]) => '<span>' + esc(k) + '</span><span>' + inline(v) + '</span>').join('') + '</div>';
+
+/* ---------- rule lookup ---------- */
+function ruleFor(label){
+  const f = faction();
+  const clean = label.replace(/\*$/,'').trim();
+  const lc = clean.toLowerCase();
+  const ar = f.armyRules.find(r => r.name.toLowerCase() === lc);
+  if(ar) return { name:ar.name, key:ar.name, text:ar.text, src:f.name + ' army rule' };
+  for(const d of detachments()) if(d.rule && d.rule.name.toLowerCase() === lc) return { name:d.rule.name, key:d.rule.name, text:d.rule.text, src:d.name + ' detachment rule', table:d.rule.table };
+  for(const [re, key] of D.ruleAliases) if(re.test(clean)) return { name:clean, key, text:D.rules[key], src:'Core rules' };
+  if(D.rules[clean]) return { name:clean, key:clean, text:D.rules[clean], src:'Core rules' };
+  return null;
+}
+
+/* ---------- top bar ---------- */
+function renderTop(){
+  const c = cur;
+  let left = '', title = '', right = '';
+  if(c.s === 'home'){
+    title = '<div class="ttl brand">Waaagh Codex</div>';
+  } else {
+    const p = parentOf(c);
+    const label = p.s === 'home' ? 'Armies' : p.s === 'army' ? army().name : 'Units';
+    left = '<button class="back" data-back><svg aria-hidden="true"><use href="#i-back"/></svg><span>' + esc(label) + '</span></button>';
+    const t = { army:'', units:'Units', strats:'Stratagems', ranged:'Ranged weapons', melee:'Melee weapons', abilities:'Abilities', rules:'Army rules', game:'Battle tracker', unit:(unitById(c.unit) || {}).name || '' }[c.s];
+    title = '<div class="ttl">' + esc(t) + '</div>';
+    const g = game();
+    if(c.s !== 'game') right = '<button class="cp-chip num" data-go="game" aria-label="Battle tracker: round ' + g.round + ', ' + g.cp + ' command points"><span>R' + g.round + '</span><span class="cp">' + g.cp + 'CP</span></button>';
+  }
+  $('#topIn').innerHTML = left + title + right;
+}
+function setSubbar(html){
+  const sb = $('#subbar');
+  sb.hidden = !html;
+  sb.innerHTML = html || '';
+  requestAnimationFrame(measureTop);
+}
+const measureTop = () => document.documentElement.style.setProperty('--hdr', $('#top').offsetHeight + 'px');
+
+/* ---------- screen: armies ---------- */
+function screenHome(){
+  let h = '<div class="eyebrow">Your armies</div><div class="stack" style="margin-top:10px">';
+  for(const a of D.armies){
+    h += '<button class="acard" data-army="' + esc(a.id) + '">' + arrow +
+      '<span class="af">' + esc(factionOf(a).name) + ' · ' + a.pointsUsed + ' pts</span>' +
+      '<span class="an">' + esc(a.name) + '</span>' +
+      '<span class="am">' + esc(detachmentsOf(a).map(d => d.name).join(' · ')) + '</span>' +
+      '<span class="am">' + unitCount(a) + ' units · ' + usableStrats(a).length + ' stratagems</span></button>';
+  }
+  h += '</div><div class="howto"><span>To add a list: export it from New Recruit as a PDF and hand it to Claude Code. It shows up here the next time you open the app.</span>' +
+    '<span>' + installText() + '</span><span>Data version ' + esc(D.version) + '</span></div>';
+  return h;
+}
+
+/* ---------- screen: one army ---------- */
+function screenArmy(){
+  const a = army(), g = game();
+  const usable = usableStrats(a), nDet = usable.filter(s => s.src !== 'Core').length;
+  return '<div class="eyebrow">' + esc(faction().name + ' · ' + a.pointsUsed + ' / ' + a.points + ' pts · ' + a.battleSize) + '</div>' +
+    '<h1 class="hero-h">' + esc(a.name) + '</h1>' +
+    '<div class="pills" style="margin-top:12px">' + detachments().map(d => '<span class="pill">' + esc(d.name) + '</span>').join('') + '<span class="pill">' + esc(a.disposition) + '</span></div>' +
+    '<div class="big2">' +
+      '<button class="bigbtn units" data-go="units"><svg class="bi" aria-hidden="true"><use href="#i-units"/></svg><span class="bt">Units</span><span class="bs">' + unitCount(a) + ' units · datasheets</span></button>' +
+      '<button class="bigbtn strats" data-go="strats"><svg class="bi" aria-hidden="true"><use href="#i-cards"/></svg><span class="bt">Stratagems</span><span class="bs">' + nDet + ' detachment \u00b7 ' + (usable.length - nDet) + ' core</span></button>' +
+    '</div>' +
+    '<div class="big2" style="margin-top:8px">' +
+      '<button class="midbtn ranged" data-go="ranged"><svg class="bi" aria-hidden="true"><use href="#i-gun"/></svg><span><b>Ranged</b><small>' + countW(a, 'ranged') + ' weapon profiles</small></span></button>' +
+      '<button class="midbtn melee" data-go="melee"><svg class="bi" aria-hidden="true"><use href="#i-blade"/></svg><span><b>Melee</b><small>' + countW(a, 'melee') + ' weapon profiles</small></span></button>' +
+    '</div>' +
+    '<div class="stack" style="margin-top:8px">' +
+      '<button class="rowbtn" data-go="abilities"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg><span class="rb"><b>Abilities</b><span>Every unit ability, by unit</span></span>' + arrow + '</button>' +
+      '<button class="rowbtn" data-go="rules"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="rb"><b>Army rules</b><span>Waaagh!, detachments, keyword glossary</span></span>' + arrow + '</button>' +
+      '<button class="rowbtn" data-go="game"><svg class="ic" aria-hidden="true"><use href="#i-dice"/></svg><span class="rb"><b>Battle tracker</b><span>Round ' + g.round + ' \u00b7 ' + g.cp + 'CP \u00b7 abilities used, riled up</span></span>' + arrow + '</button>' +
+    '</div>' +
+    '<div class="dimnote">' + esc(a.source) + '</div>';
+}
+
+/* ---------- screen: unit list ---------- */
+function statLine(u){
+  const s = u.stats[0];
+  const cells = [['M',s.M],['T',s.T],['SV',s.Sv],['W',s.W],['OC',s.OC],['INV',s.InSv]];
+  return '<div class="sline num">' + cells.map(([k,v]) => '<span' + (k === 'INV' && v !== '–' ? ' class="inv"' : '') + '><i>' + k + '</i>' + esc(v) + '</span>').join('') + '</div>';
+}
+function unitTags(u){
+  const t = [];
+  if(u.warlord) t.push('<span class="pill acc">Warlord</span>');
+  if(u.enhancement) t.push('<span class="pill warn">' + esc(u.enhancement) + '</span>');
+  if(isRiled(u)) t.push('<span class="pill acc">Riled up</span>');
+  return t;
+}
+function unitMeta(u){
+  const bits = [];
+  if(u.warlord) bits.push('<span class="tg acc">Warlord</span>');
+  if(u.enhancement) bits.push('<span class="tg">' + esc(u.enhancement) + '</span>');
+  if(isRiled(u)) bits.push('<span class="tg acc">Riled up</span>');
+  if(u.copies > 1) bits.push('×' + u.copies + ' units');
+  const solo = u.models.length === 1 && /^1\u00d7 /.test(u.models[0]);
+  if(u.leads) bits.push('Leading ' + esc(u.leads));
+  else if(!solo) bits.push(esc(u.models.join(', ')));
+  return bits.length ? '<span class="meta">' + bits.join(' \u00b7 ') + '</span>' : '';
+}
+function screenUnits(){
+  const a = army(), groups = {};
+  for(const u of a.units){ const r = ROLE_ORDER.includes(u.role) ? u.role : 'Other'; (groups[r] = groups[r] || []).push(u); }
+  let h = '<div class="eyebrow">' + unitCount(a) + ' units · ' + a.pointsUsed + ' pts</div>';
+  for(const r of ROLE_ORDER){
+    const list = groups[r]; if(!list) continue;
+    h += '<div class="sec-h"><h2>' + ROLE_LABEL[r] + '</h2></div><div class="ulist">';
+    for(const u of list){
+      h += '<button class="urow" data-unit="' + esc(u.id) + '">' +
+        '<span class="nm">' + esc(u.name) + '</span><span class="pts num">' + u.pts + (u.copies > 1 ? ' ea' : '') + '</span>' +
+        unitMeta(u) + statLine(u) + '</button>';
+    }
+    h += '</div>';
+  }
+  return h;
+}
+
+/* ---------- screens: the same data sliced by weapon type or ability ---------- */
+const countW = (a, kind) => a.units.reduce((t, u) => t + ((u[kind] || []).length), 0);
+function unitHead(u){
+  const bits = [];
+  if(u.enhancement) bits.push('<span class="tg">' + esc(u.enhancement) + '</span>');
+  if(u.leads) bits.push('+ ' + esc(u.leads));
+  if(u.copies > 1) bits.push('×' + u.copies + ' units');
+  return '<button class="uh" data-unit="' + esc(u.id) + '"><b>' + esc(u.name) + '</b><span>' + bits.join(' · ') + '</span><svg aria-hidden="true"><use href="#i-down"/></svg></button>';
+}
+function screenWeapons(kind){
+  const list = army().units.filter(u => (u[kind] || []).length);
+  if(!list.length) return '<div class="empty">No ' + kind + ' weapons in this army.</div>';
+  return '<div class="slice">' + list.map(u => unitHead(u) + weaponList(u[kind], kind)).join('') + '</div>' +
+    '<div class="dimnote">Tap a unit name for its full datasheet, or a keyword to read what it does.</div>';
+}
+function abilityList(abs){
+  return '<div class="al">' + abs.map(ab =>
+    '<div><div class="ah"><b>' + esc(ab.name) + '</b>' + (ab.who ? '<span class="who">' + esc(ab.who) + '</span>' : '') +
+    (ab.tag ? '<span class="tg' + (ab.tag === 'Enhancement' ? ' enh' : '') + '">' + esc(ab.tag) + '</span>' : '') + '</div>' + rt(ab.text) + '</div>').join('') + '</div>';
+}
+function screenAbilities(){
+  return '<div class="slice">' + army().units.filter(u => u.abilities.length).map(u => unitHead(u) + abilityList(u.abilities)).join('') + '</div>' +
+    '<div class="dimnote">Army-wide rules such as Waaagh! are under Army rules.</div>';
+}
+
+/* ---------- screen: datasheet ---------- */
+// whether a section is folded is remembered per section type, on this device
+function fold(id, dotCls, title, count, body){
+  const open = prefs.folds[id] !== false;
+  return '<details class="fold" id="sec-' + id + '" data-fold="' + id + '"' + (open ? ' open' : '') + '><summary><span class="dot ' + dotCls + '"></span><h2>' + esc(title) + '</h2>' +
+    (count != null ? '<span class="ct">' + count + '</span>' : '') + chev + '</summary><div class="body">' + body + '</div></details>';
+}
+function weaponList(list, kind){
+  const ranged = kind === 'ranged';
+  const cols = ranged ? ['RNG','A','BS','S','AP','D'] : ['A','WS','S','AP','D'];
+  let h = '<div class="wt ' + kind + '"><span class="h n">Weapon</span>' + cols.map(c => '<span class="h">' + c + '</span>').join('');
+  const combined = new Set(list.map(w => w.who || '')).size > 1;
+  let lastWho = null, prev = null;
+  for(const w of list){
+    if(combined && w.who !== lastWho){ h += '<span class="who">' + esc(w.who || '') + '</span>'; lastWho = w.who; prev = null; }
+    const kws = (w.hunter ? ['HUNTER: MONSTER/VEHICLE'] : []).concat(w.kw || []);
+    const first = w.group && !(prev && prev.group === w.group && prev.who === w.who);
+    if(first) h += '<span class="grp">' + esc(w.group) + (w.n ? '<span class="x muted"> \u00d7' + w.n + '</span>' : '') + '<small>pick one profile</small></span>';
+    prev = w;
+    const name = (w.group ? '\u27a4 ' + esc(w.name) : esc(w.name) + (w.n ? '<span class="x">\u00d7' + w.n + '</span>' : '')) +
+      (w.enh ? '<span class="enh">ENH</span>' : '');
+    const kwHtml = kws.length ? '<span class="kwl">' + kws.map(k => '<span role="button" tabindex="0" data-rule="' + esc(k) + '">' + esc(k) + '</span>').join('<span class="sep">, </span>') + '</span>' : '';
+    const vals = ranged ? [w.range, w.A, w.BS, w.S, w.AP, w.D] : [w.A, w.WS, w.S, w.AP, w.D];
+    const cls = first ? ' sub' : '';
+    h += '<span class="n' + cls + '">' + name + '</span>' + vals.map(v => '<span' + (cls ? ' class="sub"' : '') + '>' + esc(v) + '</span>').join('') + kwHtml;
+  }
+  return h + '</div>';
+}
+function screenUnit(){
+  const u = unitById(cur.unit);
+  if(!u) return '<div class="empty">This unit is no longer in the list.</div>';
+  const strats = allStratagems().filter(s => s.needs && eligible(s).includes(u));
+  const secs = [['stats','Stats']];
+  if(u.ranged && u.ranged.length) secs.push(['ranged','Ranged']);
+  if(u.melee && u.melee.length) secs.push(['melee','Melee']);
+  if(u.abilities.length) secs.push(['abilities','Abilities']);
+  secs.push(['rules','Rules']);
+  if(strats.length) secs.push(['strats','Stratagems']);
+  secs.push(['keywords','Keywords']);
+  setSubbar(secs.map(([id, l]) => '<button data-jump="' + id + '">' + l + '</button>').join(''));
+
+  const multi = u.stats.length > 1;
+  const heads = ['M','T','SV','W','LD','OC','INV'];
+  const statsBody = '<div class="st num" style="grid-template-columns:' + (multi ? 'minmax(0,1fr) ' : '') + 'repeat(7, minmax(30px, ' + (multi ? '36px' : '1fr') + '))">' +
+      (multi ? '<span class="h"></span>' : '') + heads.map(k => '<span class="h">' + k + '</span>').join('') +
+      u.stats.map(s => (multi ? '<span class="n">' + esc(s.name) + '</span>' : '') + [s.M, s.T, s.Sv, s.W, s.Ld, s.OC, s.InSv].map((v,i) => '<span' + (i === 6 && v !== '\u2013' ? ' class="inv"' : '') + '>' + esc(v) + '</span>').join('')).join('') +
+    '</div>' +
+    '<div class="meta-lines">' + esc(u.models.join(' \u00b7 ')) + ' \u00b7 Base ' + u.stats.map(s => s.base).filter((v,i,a) => a.indexOf(v) === i).map(esc).join(' / ') +
+      (u.ptsNote ? ' \u00b7 ' + esc(u.ptsNote) + ' pts' : '') + (u.boostNote ? '<br><i>' + esc(u.boostNote) + '</i>' : '') + '</div>' +
+    (isRiled(u) ? '<div class="riled-note"><b>Riled up</b> (set in the battle tracker): 5+ InSv, ranged attacks have [ASSAULT], can charge after advancing.</div>' : '');
+
+  const abilBody = abilityList(u.abilities);
+
+  const rulesBody = '<div class="chips">' + u.rules.map(r => '<button class="kw" data-rule="' + esc(r) + '">' + esc(r) + '</button>').join('') + '</div>' +
+    '<div class="dimnote">Tap a rule, or any weapon keyword, to read what it does.</div>';
+
+  const stratBody = '<div class="stack">' + strats.map(s => stratCard(s)).join('') + '</div><div class="dimnote">Only stratagems that need a keyword this unit has. Core stratagems anyone can use are on the Stratagems screen.</div>';
+  const kwBody = '<div class="kwline">' + esc(u.kw.join(', ')) + '</div>' + (u.kwNote ? '<div class="dimnote">' + esc(u.kwNote) + '</div>' : '');
+
+  const tags = unitTags(u);
+  return '<div class="ds-hero"><div class="eyebrow">' + esc(u.role) + ' \u00b7 ' + u.pts + ' pts' + (u.copies > 1 ? ' each \u00b7 \u00d7' + u.copies + ' in list' : '') + (u.leads ? ' \u00b7 leading ' + esc(u.leads) : '') + '</div><h1>' + esc(u.name) + '</h1>' +
+      (tags.length ? '<div class="pills">' + tags.join('') + '</div>' : '') + '</div>' +
+    fold('stats', 'stats', 'Stats', null, statsBody) +
+    (u.ranged && u.ranged.length ? fold('ranged', 'ranged', 'Ranged weapons', u.ranged.length, weaponList(u.ranged, 'ranged')) : '') +
+    (u.melee && u.melee.length ? fold('melee', 'melee', 'Melee weapons', u.melee.length, weaponList(u.melee, 'melee')) : '') +
+    (u.abilities.length ? fold('abilities', 'abil', 'Abilities', u.abilities.length, abilBody) : '') +
+    fold('rules', 'rules', 'Rules', u.rules.length, rulesBody) +
+    (strats.length ? fold('strats', 'ranged', 'Stratagems', strats.length, stratBody) : '') +
+    fold('keywords', 'kw', 'Keywords', null, kwBody);
+}
+
+/* ---------- screen: stratagems ---------- */
+const PH_LABEL = { command:'Command', movement:'Movement', shooting:'Shooting', charge:'Charge', fight:'Fight' };
+const TURN_LABEL = { your:'Your turn', opp:'Opponent’s turn', either:'Either turn' };
+function stratWhenLine(s){
+  const ph = s.phases.length >= 5 ? 'Any phase' : s.phases.map(p => PH_LABEL[p]).join(' / ');
+  return ph + ' · ' + TURN_LABEL[s.turn || 'either'];
+}
+function stratCard(s, open){
+  const el = s.needs ? eligible(s) : [];
+  return '<details class="strat"' + (open ? ' open' : '') + '><summary><div class="cpbox num">' + s.cp + '<small>CP</small></div>' +
+    '<div style="min-width:0"><div class="sn">' + esc(s.name) + '</div><div class="src">' + esc(stratWhenLine(s)) + (s.limit ? ' · ' + esc(s.limit) : '') + '</div></div>' + chev + '</summary>' +
+    '<div class="body"><dl><dt>Source</dt><dd>' + esc(s.src === 'Core' ? 'Core stratagem' : s.src + ' detachment') + (s.kind ? ' · ' + esc(s.kind) : '') + '</dd>' +
+      '<dt>When</dt><dd>' + inline(s.when) + '</dd><dt>Target</dt><dd>' + inline(s.target) + '</dd><dt>Effect</dt><dd>' + inline(s.effect) + '</dd></dl>' +
+      (el.length ? '<div class="units"><span class="eyebrow">Who can use it</span>' + el.map(u => '<button class="ulink" data-unit="' + esc(u.id) + '">' + esc(shortName(u)) + '</button>').join('') + '</div>' : '') +
+    '</div></details>';
+}
+const turnOk = t => prefs.turn === 'all' || !t || t === 'either' || prefs.turn === t;
+const phaseOk = ph => prefs.phase === 'all' || (ph || []).includes(prefs.phase);
+function phaseAbilities(){
+  const out = [];
+  for(const r of faction().armyRules) if(r.ph) out.push({ name:r.name, text:r.text, tag:r.tag, ph:r.ph, turn:r.turn, src:'Army rule', units:[] });
+  for(const d of detachments()) if(d.rule && d.rule.ph) out.push({ name:d.rule.name, text:d.rule.text, ph:d.rule.ph, turn:d.rule.turn, src:d.name + ' detachment rule', table:d.rule.table, units:[] });
+  for(const u of army().units) for(const ab of u.abilities){
+    if(!ab.ph) continue;
+    const key = ab.name + '|' + ab.text;
+    let e = out.find(x => x.key === key);
+    if(!e){ e = { key, name:ab.name, text:ab.text, tag:ab.tag, ph:ab.ph, turn:ab.turn, units:[] }; out.push(e); }
+    e.units.push(u);
+  }
+  return out;
+}
+function screenStrats(){
+  const shown = allStratagems().filter(s => phaseOk(s.phases) && turnOk(s.turn));
+  const usable = shown.filter(s => eligible(s).length);
+  const hidden = shown.length - usable.length;
+  let h = '<div class="seg" role="group" aria-label="Whose turn">' + TURNS.map(([k,l]) => '<button data-turn="' + k + '" aria-pressed="' + (prefs.turn === k) + '">' + l + '</button>').join('') + '</div>' +
+    '<div class="phasebar" role="group" aria-label="Phase">' + PHASES.map(([k,l]) => '<button data-phase="' + k + '" aria-pressed="' + (prefs.phase === k) + '">' + l + '</button>').join('') + '</div>' +
+    (usable.length ? '<div class="toolrow"><button class="linkbtn" data-expand>Expand all</button></div>' : '');
+  const groups = [...detachments().map(d => [d.name, usable.filter(s => s.src === d.name), d]), ['Core', usable.filter(s => s.src === 'Core')]];
+  let any = false;
+  for(const [name, list, d] of groups){
+    if(!list.length){
+      if(d && !d.stratagems.length && prefs.phase === 'all' && prefs.turn === 'all') h += '<div class="sec-h"><h2>' + esc(name) + '</h2></div><div class="dimnote" style="margin-top:0">No stratagems in this detachment: it gives you the ' + esc(d.rule.name) + ' rule and its enhancements.</div>';
+      continue;
+    }
+    any = true;
+    h += '<div class="sec-h"><h2>' + esc(name === 'Core' ? 'Core stratagems' : name) + '</h2><span class="ct">' + list.length + '</span></div><div class="stack">' + list.map(s => stratCard(s)).join('') + '</div>';
+  }
+  if(!any) h += '<div class="empty" style="margin-top:14px">No stratagems for this phase and turn.</div>';
+  if(hidden) h += '<div class="dimnote">' + hidden + ' more ' + (hidden === 1 ? 'needs' : 'need') + ' a keyword no unit in this army has (for example SMOKE).</div>';
+  h += '<div class="dimnote">Stratagem text is a short summary of the rule. Check your printout for exact wording.</div>';
+  if(prefs.phase !== 'all'){
+    const abil = phaseAbilities().filter(a => phaseOk(a.ph) && turnOk(a.turn));
+    if(abil.length) h += '<div class="sec-h"><h2>Also this phase</h2><span class="ct">' + abil.length + ' abilities</span></div><div class="stack">' + abil.map(a =>
+      '<details class="xp"><summary><b>' + esc(a.name) + '</b>' + (a.tag ? '<span class="pill">' + esc(a.tag.replace(', per army','')) + '</span>' : '') + chev + '</summary><div class="body">' +
+        (a.src ? '<div class="eyebrow" style="margin-bottom:6px">' + esc(a.src) + '</div>' : '') + rt(a.text) + (a.table ? ttable(a.table) : '') +
+        (a.units.length ? '<div class="pills" style="margin-top:10px">' + a.units.map(u => '<button class="ulink" data-unit="' + esc(u.id) + '">' + esc(shortName(u)) + '</button>').join('') + '</div>' : '') +
+      '</div></details>').join('') + '</div>';
+  }
+  return h;
+}
+
+/* ---------- screen: army rules ---------- */
+let ruleQ = '';
+function screenRules(){
+  return '<label class="search"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="ruleQ" type="search" placeholder="Search, e.g. riled up" autocomplete="off" aria-label="Search rules"></label><div id="rulesBody"></div>';
+}
+function rulesBody(){
+  const q = ruleQ.trim().toLowerCase();
+  const match = (...p) => !q || p.join(' ').toLowerCase().includes(q);
+  const f = faction(), a = army();
+  const taken = new Map(a.units.filter(u => u.enhancement).map(u => [u.enhancement, u]));
+  const card = (name, text, pills, table, open, extra) => '<details class="xp"' + (open || q ? ' open' : '') + '><summary><b>' + esc(name) + '</b>' + (pills || []).map(p => '<span class="pill">' + esc(p) + '</span>').join('') + chev + '</summary><div class="body">' + rt(text) + (table ? ttable(table) : '') + (extra || '') + '</div></details>';
+  const sections = [];
+  const ar = f.armyRules.filter(r => match(r.name, r.text));
+  if(ar.length) sections.push(['Army rules', ar.map(r => card(r.name, r.text, r.tag ? ['Once per battle'] : [], null, r.name === 'Waaagh!')).join('')]);
+  for(const d of detachments()){
+    let b = '';
+    if(d.rule && match(d.rule.name, d.rule.text, d.name)) b += card(d.rule.name, d.rule.text, ['Rule'], d.rule.table, true);
+    const enh = d.enhancements.filter(e => match(e.name, e.text, d.name)).sort((x,y) => taken.has(y.name) - taken.has(x.name));
+    for(const e of enh){
+      const u = taken.get(e.name);
+      b += card(e.name, e.text, [u ? 'In your list' : (e.pts ? e.pts + ' pts' : 'Enhancement')], null, false, u ? '<div class="pills" style="margin-top:10px"><button class="ulink" data-unit="' + esc(u.id) + '">On ' + esc(u.name) + '</button></div>' : '');
+    }
+    if(b) sections.push([d.name, b]);
+  }
+  // core rules and weapon keywords this army actually uses
+  const used = new Map();
+  for(const u of a.units){
+    for(const r of u.rules) used.set(r, 'ability');
+    for(const w of [...(u.ranged || []), ...(u.melee || [])]){ for(const k of w.kw) used.set(k, 'weapon'); if(w.hunter) used.set('Hunter', 'weapon'); }
+    for(const ab of u.abilities) if(/Lone Operative/.test(ab.text)) used.set('Lone Operative', 'ability');
+  }
+  const groups = { ability:new Map(), weapon:new Map() };
+  for(const [label, kind] of used){
+    const r = ruleFor(label);
+    if(!r || f.armyRules.some(x => x.name === r.name)) continue;
+    if(!groups[kind].has(r.key)) groups[kind].set(r.key, { r, names:[] });
+    if(label.toLowerCase() !== r.key.toLowerCase()) groups[kind].get(r.key).names.push(label);
+  }
+  const gloss = kind => [...groups[kind].values()].filter(g => match(g.r.key, g.r.text, g.names.join(' ')))
+    .sort((x,y) => x.r.key.localeCompare(y.r.key)).map(g => card(g.r.key, g.r.text, [], null, false,
+      g.names.length ? '<div class="dimnote">In this army: ' + esc(g.names.sort().join(', ')) + '</div>' : '')).join('');
+  const ga = gloss('ability'); if(ga) sections.push(['Unit rules', ga]);
+  const gw = gloss('weapon'); if(gw) sections.push(['Weapon keywords', gw]);
+  $('#rulesBody').innerHTML = sections.length
+    ? sections.map(([t, b]) => '<div class="sec-h"><h2>' + esc(t) + '</h2></div><div class="stack">' + b + '</div>').join('')
+    : '<div class="empty" style="margin-top:14px">Nothing matches “' + esc(ruleQ) + '”.</div>';
+}
+
+/* ---------- screen: battle tracker ---------- */
+function freshGame(){ return { round:1, cp:0, used:{}, roundUsed:{}, riled:{}, bossPrompt:false }; }
+let G = null;
+function game(){
+  const id = army().id;
+  if(!G || G._army !== id){ G = Object.assign(freshGame(), store.get('wh-game-' + id, {})); G._army = id; }
+  return G;
+}
+function saveGame(){ const g = Object.assign({}, G); delete g._army; store.set('wh-game-' + G._army, g); }
+function isRiled(u){ const g = game(); return Object.keys(g.riled).some(k => g.riled[k] && (k === u.id || k.startsWith(u.id + '#'))); }
+function trackables(kind){
+  const out = [];
+  for(const r of faction().armyRules) if(r.track === kind) out.push({ id:'army:' + r.name, name:r.name, sub:r.tag });
+  for(const u of army().units) for(const ab of u.abilities){
+    if(ab.track !== kind) continue;
+    const perArmy = /per army/i.test(ab.tag || '');
+    const id = perArmy ? 'ab:' + ab.name : 'ab:' + u.id + ':' + ab.name;
+    const e = out.find(x => x.id === id);
+    if(e){ e.who.push(u.name); continue; }
+    out.push({ id, name:ab.name, who:[u.name], sub:ab.tag });
+  }
+  // "Beastboss on Squigosaur ×2" rather than listing the same name twice
+  const names = w => [...new Set(w)].map(n => { const k = w.filter(x => x === n).length; return n + (k > 1 ? ' \u00d7' + k : ''); }).join(', ');
+  return out.map(x => Object.assign(x, { sub:(x.who ? names(x.who) + ' \u00b7 ' : '') + x.sub }));
+}
+const warlordHasDaBoss = () => { const w = army().units.find(u => u.warlord); return !!(w && w.rules.includes('Da Boss')); };
+function screenGame(){
+  const g = game();
+  const bat = trackables('battle'), rnd = trackables('round');
+  const riledUnits = [];
+  for(const u of army().units){
+    if(!u.rules.includes('Waaagh!')) continue;
+    const n = u.copies || 1;
+    for(let i = 1; i <= n; i++) riledUnits.push({ id:u.id + (n > 1 ? '#' + i : ''), label:shortName(u) + (n > 1 ? ' ' + i : '') });
+  }
+  const tick = (t, bag) => '<button class="tick" data-bag="' + bag + '" data-tick="' + esc(t.id) + '" aria-pressed="' + !!g[bag][t.id] + '"><span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>' +
+    '<span><span class="tl">' + esc(t.name) + '</span><br><span class="ts">' + esc(t.sub) + '</span></span></button>';
+  let h = '<div class="gtiles">' +
+      '<div class="gtile"><div class="eyebrow">Battle round</div><div class="big num">' + g.round + '</div><div class="row"><button class="btn" data-g="round-" aria-label="Previous round">−</button><button class="btn primary" data-g="round+">Next</button></div></div>' +
+      '<div class="gtile cp"><div class="eyebrow">Command points</div><div class="big num">' + g.cp + '</div><div class="row"><button class="btn" data-g="cp-" aria-label="Spend 1 CP">−</button><button class="btn" data-g="cp+" aria-label="Gain 1 CP">+</button></div></div>' +
+    '</div>' +
+    (g.bossPrompt && warlordHasDaBoss() ? '<div class="reminder"><p><b>Da Boss:</b> your Warlord gains you 1CP at the start of the battle round.</p><button class="btn primary" data-g="boss">+1CP</button></div>' : '');
+  if(bat.length) h += '<div class="sec-h"><h2>Once per battle</h2></div><div class="ticks">' + bat.map(t => tick(t, 'used')).join('') + '</div>';
+  if(rnd.length) h += '<div class="sec-h"><h2>Once per round</h2><span class="ct">Clears on Next</span></div><div class="ticks">' + rnd.map(t => tick(t, 'roundUsed')).join('') + '</div>';
+  if(riledUnits.length){
+    const nR = riledUnits.filter(r => g.riled[r.id]).length;
+    h += '<div class="sec-h"><h2>Riled up</h2><span class="ct">' + nR + ' of ' + riledUnits.length + '</span></div>' +
+      '<div class="riled">' + riledUnits.map(r => '<button data-riled="' + esc(r.id) + '" aria-pressed="' + !!g.riled[r.id] + '">' + esc(r.label) + '</button>').join('') + '</div>' +
+      '<div class="btnrow"><button class="btn" data-g="riled-all">All (War Cry)</button><button class="btn" data-g="riled-none">Clear all</button></div>' +
+      '<div class="dimnote">Riled up units get a badge on their datasheet. While riled up: 5+ InSv, ranged attacks have [ASSAULT], can charge after advancing.</div>';
+  }
+  h += '<div class="sec-h"><h2>At the table</h2></div><div class="stack">' +
+    ('wakeLock' in navigator ? '<button class="switch" data-wake aria-pressed="' + !!prefs.wake + '"><span class="rb"><b>Keep screen on</b><span>Stops the phone dimming while the app is open</span></span><span class="sw" aria-hidden="true"></span></button>' : '') +
+    '<button class="btn danger" id="resetGame">New game: reset round, CP and ticks</button></div>' +
+    '<div class="dimnote">Saved on this device only.</div>';
+  return h;
+}
+function gameAction(k){
+  const g = game();
+  if(k === 'round+'){ if(g.round >= 5){ toast('Round 5 is the last round'); return; } g.round++; g.roundUsed = {}; g.bossPrompt = true; toast('Battle round ' + g.round); }
+  if(k === 'round-'){ g.round = Math.max(1, g.round - 1); g.bossPrompt = false; }
+  if(k === 'cp+') g.cp++;
+  if(k === 'cp-') g.cp = Math.max(0, g.cp - 1);
+  if(k === 'boss'){ g.cp++; g.bossPrompt = false; toast('+1CP from Da Boss'); }
+  if(k === 'riled-all') $$('[data-riled]').forEach(b => g.riled[b.dataset.riled] = true);
+  if(k === 'riled-none') g.riled = {};
+  saveGame(); rerender();
+}
+
+/* ---------- keep the screen on ---------- */
+let wakeLock = null;
+async function applyWake(){
+  if(!('wakeLock' in navigator)) return;
+  try {
+    if(prefs.wake && document.visibilityState === 'visible' && !wakeLock){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    if(!prefs.wake && wakeLock){ await wakeLock.release(); wakeLock = null; }
+  } catch(e){ if(prefs.wake) toast('This browser won’t keep the screen on'); }
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderTop();
+  setSubbar('');
+  const v = $('#view'), s = cur.s;
+  if(s === 'home') v.innerHTML = screenHome();
+  else if(s === 'army') v.innerHTML = screenArmy();
+  else if(s === 'units') v.innerHTML = screenUnits();
+  else if(s === 'unit') v.innerHTML = screenUnit();
+  else if(s === 'strats') v.innerHTML = screenStrats();
+  else if(s === 'ranged' || s === 'melee') v.innerHTML = screenWeapons(s);
+  else if(s === 'abilities') v.innerHTML = screenAbilities();
+  else if(s === 'rules'){ v.innerHTML = screenRules(); const i = $('#ruleQ'); i.value = ruleQ; i.addEventListener('input', () => { ruleQ = i.value; rulesBody(); }); rulesBody(); }
+  else if(s === 'game') v.innerHTML = screenGame();
+  wireReset();
+}
+// re-render the same screen in place, keeping the scroll position
+function rerender(){ const y = scrollY; render(); scrollTo(0, y); }
+function wireReset(){
+  const r = $('#resetGame');
+  if(!r) return;
+  const label = r.textContent;
+  r.addEventListener('click', () => {
+    if(r.classList.contains('armed')){ G = Object.assign(freshGame(), { _army:army().id }); saveGame(); rerender(); toast('New game started'); return; }
+    r.classList.add('armed'); r.textContent = 'Tap again to reset';
+    setTimeout(() => { if(r.isConnected){ r.classList.remove('armed'); r.textContent = label; } }, 3500);
+  });
+}
+
+/* ---------- popup sheet ---------- */
+function openSheet(html){
+  $('#sheet').innerHTML = '<div class="grab" aria-hidden="true"></div>' + html + '<button class="btn close" data-close>Close</button>';
+  $('#sheetHost').hidden = false;
+  $('#sheet').scrollTop = 0;
+  try { history.pushState(Object.assign(plain(cur), { sheet:1 }), ''); } catch(e){}
+}
+function hideSheet(){ $('#sheetHost').hidden = true; }
+function closeSheet(){
+  if($('#sheetHost').hidden) return;
+  hideSheet();
+  try { if(history.state && history.state.sheet) history.back(); } catch(e){}
+}
+function showRule(label){
+  const r = ruleFor(label);
+  if(!r){ toast('No rule text stored for ' + label); return; }
+  openSheet('<div class="eyebrow">' + esc(r.src) + '</div><h2>' + esc(r.name) + '</h2>' + rt(r.text) + (r.table ? ttable(r.table) : ''));
+}
+
+/* ---------- toast ---------- */
+let tt = null;
+function toast(m){ const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); }
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('button, [role="button"]');
+  if(!el) return;
+  const inSheet = !!el.closest('#sheetHost');
+  if(el.hasAttribute('data-close')){ closeSheet(); return; }
+  if(el.hasAttribute('data-back')){ back(); return; }
+  if(el.dataset.army){ go({ s:'army', army:el.dataset.army }); return; }
+  if(el.dataset.go){ go({ s:el.dataset.go, army:army().id }); return; }
+  if(el.dataset.unit){
+    const next = { s:'unit', army:army().id, unit:el.dataset.unit };
+    if(inSheet){ hideSheet(); go(next, 'sheet'); } else go(next);
+    return;
+  }
+  if(el.dataset.rule){ e.preventDefault(); showRule(el.dataset.rule); return; }
+  if(el.dataset.jump){
+    const sec = $('#sec-' + el.dataset.jump);
+    if(sec){ sec.open = true; sec.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start' }); }
+    return;
+  }
+  if(el.dataset.phase){ prefs.phase = el.dataset.phase; savePrefs(); rerender(); return; }
+  if(el.dataset.turn){ prefs.turn = el.dataset.turn; savePrefs(); rerender(); return; }
+  if(el.hasAttribute('data-expand')){
+    const ds = $$('#view details.strat');
+    const openAll = ds.some(d => !d.open);
+    ds.forEach(d => d.open = openAll);
+    el.textContent = openAll ? 'Collapse all' : 'Expand all';
+    return;
+  }
+  if(el.dataset.g){ gameAction(el.dataset.g); return; }
+  if(el.dataset.tick){ const g = game(); const bag = g[el.dataset.bag === 'roundUsed' ? 'roundUsed' : 'used']; bag[el.dataset.tick] = !bag[el.dataset.tick]; saveGame(); rerender(); return; }
+  if(el.dataset.riled){ const g = game(); g.riled[el.dataset.riled] = !g.riled[el.dataset.riled]; saveGame(); rerender(); return; }
+  if(el.hasAttribute('data-wake')){ prefs.wake = !prefs.wake; savePrefs(); applyWake(); rerender(); return; }
+});
+// remember which datasheet sections are folded
+document.addEventListener('toggle', e => {
+  const d = e.target;
+  if(d.dataset && d.dataset.fold){ prefs.folds[d.dataset.fold] = d.open; savePrefs(); }
+}, true);
+$('#sheetBack').addEventListener('click', closeSheet);
+addEventListener('keydown', e => { if((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[role="button"]')){ e.preventDefault(); e.target.click(); return; } if(e.key === 'Escape'){ if(!$('#sheetHost').hidden) closeSheet(); else if(cur.s !== 'home') back(); } });
+addEventListener('resize', measureTop);
+
+/* ---------- install + live updates ---------- */
+const INSTALLED = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const ON_SITE = /github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname);
+const SITE_URL = 'https://marastefanic-cmd.github.io/aibattle26/warhammer/';
+function installText(){
+  if(INSTALLED) return 'Installed on this phone. It updates itself each time you open it.';
+  if(ON_SITE) return 'Put it on your home screen: Safari → Share → Add to Home Screen (Chrome: menu → Add to Home screen).';
+  return 'Phone app: open <a href="' + SITE_URL + '" target="_blank" rel="noopener">' + SITE_URL.replace('https://','') + '</a> in Safari, then Share → Add to Home Screen.';
+}
+if(ON_SITE && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+async function checkForUpdate(){
+  if(!ON_SITE) return;
+  try {
+    const r = await fetch('version.json?t=' + Date.now(), { cache:'no-store' });
+    if(!r.ok) return;
+    const v = (await r.json()).version;
+    if(v && v !== D.version){
+      let last = null; try { last = sessionStorage.getItem('wh-reloaded-for'); } catch(e){}
+      if(last === v) return;                     // reloaded for this version once already
+      try { sessionStorage.setItem('wh-reloaded-for', v); } catch(e){}
+      location.reload();
+    }
+  } catch(e){}
+}
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible'){ checkForUpdate(); applyWake(); } });
+
+/* ---------- boot (also keeps your place across Claude artifact live updates) ---------- */
+function valid(c){
+  if(!c || !c.s) return false;
+  if(c.s === 'home') return true;
+  const a = D.armies.find(x => x.id === c.army);
+  if(!a) return false;
+  if(c.s === 'unit') return a.units.some(u => u.id === c.unit);
+  return ['army','units','strats','ranged','melee','abilities','rules','game'].includes(c.s);
+}
+function start(snap){
+  const last = store.get('wh-last');
+  const target = snap && valid(snap.cur) ? snap.cur : valid(last) ? last : { s:'home' };
+  restore({ s:target.s, army:target.army, unit:target.unit });
+  if(snap && snap.y) scrollTo(0, snap.y);
+  applyWake();
+  checkForUpdate();
+}
+const hot = window.claude && window.claude.hot;
+if(hot && hot.snapshot){ try { hot.snapshot(() => ({ cur:plain(cur), y:scrollY })); } catch(e){} }
+if(hot && hot.ready) hot.ready(start); else start(hot && hot.data ? hot.data : null);
+</script>
+
+</body>
+</html>
