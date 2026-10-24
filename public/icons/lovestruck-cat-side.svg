@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="256" height="256">
+  <defs>
+    <path id="heart" d="M0 -6 C0 -20 -22 -22 -22 -4 C-22 10 -6 18 0 28 C6 18 22 10 22 -4 C22 -22 0 -20 0 -6 Z"/>
+  </defs>
+  <!-- head, side profile, facing right -->
+  <g transform="translate(-14 40) scale(0.8)" stroke="#1a1a1a" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M60 112 L44 44 L96 92 Z" fill="#c9732f"/>
+    <path d="M118 182 L196 176 Q204 236 176 248 Q140 256 112 214 Z" fill="#f2a65a"/>
+    <path d="M128 184 L188 180 Q192 224 172 234 Q148 238 130 204 Z" fill="#8a1f2b" stroke-width="0"/>
+    <path d="M40 270 C20 200 22 130 70 104 C104 86 148 92 168 116 C176 128 180 140 198 148 C212 156 210 172 196 176 L128 184 C112 196 104 222 106 270 Z" fill="#f2a65a"/>
+    <path d="M74 108 l10 18 M94 100 l8 18 M114 98 l4 18" stroke="#c9732f" stroke-width="8"/>
+    <path d="M78 104 L80 30 L132 92 Z" fill="#f2a65a"/>
+    <path d="M90 92 L90 54 L118 88 Z" fill="#f7b8c4" stroke-width="0"/>
+    <ellipse cx="202" cy="156" rx="9" ry="7" fill="#1a1a1a"/>
+    <path d="M176 162 L236 150 M176 170 L238 176 M170 166 L118 150" stroke-width="4" fill="none"/>
+    <!-- empty eye socket -->
+    <path d="M150 118 Q162 108 172 122" fill="none"/>
+  </g>
+  <!-- ridiculously long tongue -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path id="t" d="M104 200 C150 196 140 252 184 250 S236 206 262 240 S258 282 226 274"
+          stroke="#1a1a1a" stroke-width="44"/>
+    <path d="M104 200 C150 196 140 252 184 250 S236 206 262 240 S258 282 226 274"
+          stroke="#ff6b8b" stroke-width="33"/>
+    <path d="M110 200 C150 196 140 252 184 250 S236 206 262 240 S258 282 230 274"
+          stroke="#d94a6a" stroke-width="3"/>
+  </g>
+  <!-- speed lines: eyes shooting out of the head -->
+  <g stroke="#1a1a1a" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M118 112 L150 96 M120 126 L156 122 M114 98 L140 76"/>
+  </g>
+  <!-- huge popped-out eyes -->
+  <g stroke="#1a1a1a" stroke-width="6">
+    <ellipse cx="196" cy="88" rx="46" ry="56" fill="#ffd93b"/>
+    <ellipse cx="248" cy="96" rx="46" ry="56" fill="#ffd93b"/>
+  </g>
+  <use href="#heart" transform="translate(194 84) scale(1.45)" fill="#e8243c" stroke="#1a1a1a" stroke-width="2.5"/>
+  <use href="#heart" transform="translate(248 92) scale(1.45)" fill="#e8243c" stroke="#1a1a1a" stroke-width="2.5"/>
+  <ellipse cx="232" cy="66" rx="7" ry="11" fill="#fff" transform="rotate(-25 232 66)"/>
+  <g stroke="#1a1a1a" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M190 22 l-6 -14 M232 26 l8 -16"/>
+  </g>
+</svg>
