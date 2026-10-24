@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -2 268 268" width="256" height="256">
+  <defs>
+    <path id="heart" d="M0 -6 C0 -20 -22 -22 -22 -4 C-22 10 -6 18 0 28 C6 18 22 10 22 -4 C22 -22 0 -20 0 -6 Z"/>
+  </defs>
+  <g stroke="#1a1a1a" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- ears -->
+    <path d="M40 140 L40 52 L104 92 Z" fill="#f2a65a"/>
+    <path d="M216 140 L216 52 L152 92 Z" fill="#f2a65a"/>
+    <path d="M54 118 L54 76 L88 96 Z" fill="#f7b8c4" stroke-width="0"/>
+    <path d="M202 118 L202 76 L168 96 Z" fill="#f7b8c4" stroke-width="0"/>
+    <!-- head -->
+    <ellipse cx="128" cy="160" rx="98" ry="78" fill="#f2a65a"/>
+    <path d="M128 84 v18 M110 88 l4 14 M146 88 l-4 14" stroke="#c9732f" stroke-width="7"/>
+    <!-- muzzle -->
+    <ellipse cx="128" cy="196" rx="54" ry="36" fill="#fff4e6" stroke-width="0"/>
+    <!-- whiskers -->
+    <path d="M76 184 L22 170 M76 196 L20 202 M180 184 L234 170 M180 196 L236 202" stroke-width="4" fill="none"/>
+    <!-- open mouth -->
+    <path d="M92 188 Q128 196 164 188 Q160 236 128 238 Q96 236 92 188 Z" fill="#8a1f2b"/>
+    <!-- tongue hanging out -->
+    <path d="M108 214 Q104 254 126 254 Q150 254 150 214 Q128 206 108 214 Z" fill="#ff6b8b"/>
+    <path d="M128 216 v24" stroke="#d94a6a" stroke-width="4"/>
+    <!-- nose -->
+    <path d="M118 176 h20 l-10 10 Z" fill="#ff8fa3"/>
+    <!-- popping eyes -->
+    <ellipse cx="88" cy="96" rx="44" ry="48" fill="#ffd93b"/>
+    <ellipse cx="168" cy="96" rx="44" ry="48" fill="#ffd93b"/>
+  </g>
+  <!-- hearts in eyes -->
+  <use href="#heart" transform="translate(88 92) scale(1.35)" fill="#e8243c" stroke="#1a1a1a" stroke-width="3"/>
+  <use href="#heart" transform="translate(168 92) scale(1.35)" fill="#e8243c" stroke="#1a1a1a" stroke-width="3"/>
+  <!-- shine -->
+  <ellipse cx="66" cy="70" rx="7" ry="10" fill="#fff" transform="rotate(-25 66 70)"/>
+  <ellipse cx="146" cy="70" rx="7" ry="10" fill="#fff" transform="rotate(-25 146 70)"/>
+  <!-- boing lines -->
+  <g stroke="#1a1a1a" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M30 60 l-14 -10 M24 88 l-18 0 M226 60 l14 -10 M232 88 l18 0 M128 22 v-14"/>
+  </g>
+</svg>
